@@ -36,11 +36,16 @@
     }
 
     nav .logo a {
-      font-family: 'Playfair Display', serif;
-      font-size: 1.6rem;
-      font-weight: bold;
-      color: #000;
+      display: flex;
+      align-items: center;
+      gap: 10px;
       text-decoration: none;
+    }
+
+    nav .logo img {
+      height: 36px;
+      width: auto;
+      display: block;
     }
 
     nav ul {
@@ -249,7 +254,9 @@
 
     <!-- Logo -->
     <div class="logo">
-      <a href="{{ url_for('index') }}">Lost & Found</a>
+      <a href="{{ url_for('index') }}">
+        <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Lost & Found logo">
+      </a>
     </div>
 
     <!-- Menu -->
