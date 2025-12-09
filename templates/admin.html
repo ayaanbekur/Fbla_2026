@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="page-container">
+  <h2 class="page-title">Admin Dashboard</h2>
+
+  <!-- Toast CSS (put near the top of your admin.html block or move to styles.css) -->
+<style>
+.admin-toast {
+    position: fixed;
+    right: 20px;
+    top: 20px;
+    background: linear-gradient(90deg,#0A8754,#004F2D);
+    color: #BFD7EA;
+    padding: 12px 16px;
+    border-radius: 10px;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+    z-index: 2000;
+    opacity: 1;
+    transition: opacity 0.5s ease;
+    max-width: 320px;
+    word-break: break-word;
+}
+</style>
+
+
+{# Flash / toast block - replace your previous flash code with this #}
+{% with messages = get_flashed_messages() %}
+  {% if messages %}
+    {% for msg in messages %}
+      {# compute a top offset so toasts stack without overlapping #}
+      {% set top_offset = 20 + (loop.index0 * 72) %}
+      <div class="admin-toast" {% if top_offset %}style="top: {{ top_offset }}px;"{% endif %}>
+        {{ msg }}
+      </div>
+    {% endfor %}
+
+    <script>
+      // fade out and remove toasts after 3s
+      setTimeout(function(){
+        const toasts = document.querySelectorAll('.admin-toast');
+        toasts.forEach(function(t){
+          t.style.opacity = '0';
+          setTimeout(function(){ t.remove(); }, 600);
+        });
+      }, 3000);
+    </script>
+  {% endif %}
+{% endwith %}
+
+
+
+  {% if items %}
+  <div class="card-grid">
+    {% for item in items %}
+    <div class="item-card">
+      {% if item['image'] %}
+      <img src="{{ url_for('static', filename='uploads/' ~ item['image']) }}" alt="{{ item['name'] }}">
+      {% endif %}
+      <div class="card-body">
+        <h3>{{ item['name'] }}</h3>
+        <p>{{ item['description'] }}</p>
+        {% if item['location'] %}
+        <p class="location">Location: {{ item['location'] }}</p>
+        {% endif %}
+        <p>Status: {{ item['status'] }}</p>
+
+        <div class="row" style="margin-top:0.5rem">
+          {% if item['approved'] == 0 %}
+          <form method="post" action="{{ url_for('approve', item_id=item['id']) }}" style="display:inline;">
+            <button type="submit" class="cta-button small">Approve</button>
+          </form>
+          <form method="post" action="{{ url_for('reject', item_id=item['id']) }}" style="display:inline;margin-left:0.5rem;" onsubmit="return confirm('Reject and delete this item?');">
+            <button type="submit" class="danger-button small">Reject</button>
+          </form>
+          {% else %}
+          <span class="approved-text">Approved</span>
+          {% endif %}
+
+          {% if item['status'] == 'Claimed' %}
+          <form method="post" action="{{ url_for('clear_claim', item_id=item['id']) }}" style="display:inline;margin-left:0.6rem;">
+            <button type="submit" class="nav-link" style="background:#fff;color:#000;border-radius:8px;padding:0.35rem 0.6rem;border:none;cursor:pointer;">Clear Claim</button>
+          </form>
+          {% endif %}
+
+          {% if item['status'] in ['Found','Claimed'] %}
+          <form method="post" action="{{ url_for('remove_item', item_id=item['id']) }}" style="display:inline;margin-left:0.5rem;" onsubmit="return confirm('Mark this item as Removed?');">
+            <button type="submit" class="danger-button small" style="background:#e67e22;">Mark Removed</button>
+          </form>
+          {% endif %}
+
+          <form method="post" action="{{ url_for('admin_delete', item_id=item['id']) }}" style="margin-left:auto;display:inline;" onsubmit="return confirm('Permanently delete this item?');">
+            <button type="submit" class="danger-button small" style="background:#c0392b;">Delete</button>
+          </form>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <p>No items submitted yet.</p>
+  {% endif %}
+</div>
+{% endblock %}

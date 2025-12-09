@@ -1,0 +1,169 @@
+{% extends "base.html" %}
+
+{% block title %}Chat with {{ user.name }}{% endblock %}
+
+{% block content %}
+<div class="admin-chat-view">
+  <div class="chat-header">
+    <a href="{{ url_for('admin_chat') }}" class="back-link">← Back to Conversations</a>
+    <h2>💬 Chat with {{ user.name }}</h2>
+    <p class="user-email">{{ user.email }}</p>
+  </div>
+
+  <div class="chat-box" id="chat-box">
+    {% for msg in messages %}
+      <div class="chat-message {% if msg.is_self %}self{% else %}other{% endif %}">
+        <strong>{{ msg.sender_name or 'Unknown' }}:</strong> {{ msg.content }}
+        <span class="timestamp">{{ msg.timestamp.strftime("%b %d, %H:%M") if msg.timestamp else '' }}</span>
+      </div>
+    {% endfor %}
+  </div>
+
+  <form method="POST" class="admin-chat-form">
+    <textarea name="content" placeholder="Type your admin response..." required></textarea>
+    <button type="submit" class="cta-button">Send</button>
+  </form>
+
+  <style>
+    .admin-chat-view {
+      max-width: 700px;
+      margin: 0 auto;
+    }
+
+    .chat-header {
+      margin-bottom: 2rem;
+    }
+
+    .back-link {
+      display: inline-block;
+      color: #C8102E;
+      text-decoration: none;
+      font-size: 0.95rem;
+      margin-bottom: 1rem;
+      transition: all 0.3s ease;
+    }
+
+    .back-link:hover {
+      color: #D72638;
+      transform: translateX(-4px);
+    }
+
+    .chat-header h2 {
+      color: #C8102E;
+      font-family: 'Playfair Display', serif;
+      margin: 0.5rem 0 0 0;
+    }
+
+    .user-email {
+      color: #666;
+      margin: 0;
+      font-size: 0.95rem;
+    }
+
+    .chat-box {
+      max-height: 500px;
+      overflow-y: auto;
+      background: #f9f9f9;
+      border-radius: 15px;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+      display: flex;
+      flex-direction: column;
+      gap: 0.8rem;
+    }
+
+    .chat-message {
+      padding: 0.8rem 1rem;
+      border-radius: 10px;
+      font-size: 0.95rem;
+      max-width: 80%;
+      line-height: 1.4;
+    }
+
+    .chat-message strong {
+      display: block;
+      margin-bottom: 0.3rem;
+      font-weight: 600;
+    }
+
+    .chat-message.self {
+      background: #C8102E;
+      color: #fff;
+      align-self: flex-end;
+      border-radius: 10px 10px 0 10px;
+    }
+
+    .chat-message.self strong {
+      color: #BFD7EA;
+    }
+
+    .chat-message.other {
+      background: #e8f4f0;
+      color: #222;
+      align-self: flex-start;
+      border-radius: 10px 10px 10px 0;
+      border-left: 4px solid #C8102E;
+    }
+
+    .chat-message.other strong {
+      color: #C8102E;
+    }
+
+    .timestamp {
+      display: block;
+      font-size: 0.75rem;
+      color: #999;
+      margin-top: 0.3rem;
+      opacity: 0.8;
+    }
+
+    .admin-chat-form {
+      display: flex;
+      flex-direction: column;
+      gap: 0.8rem;
+    }
+
+    .admin-chat-form textarea {
+      padding: 0.8rem;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      font-family: 'Poppins', sans-serif;
+      font-size: 0.95rem;
+      resize: vertical;
+      min-height: 100px;
+      transition: all 0.3s ease;
+    }
+
+    .admin-chat-form textarea:focus {
+      outline: none;
+      border-color: #C8102E;
+      box-shadow: 0 0 10px rgba(200, 16, 46, 0.15);
+    }
+
+    .admin-chat-form .cta-button {
+      align-self: flex-start;
+    }
+
+    .chat-box::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    .chat-box::-webkit-scrollbar-track {
+      background: #f1f1f1;
+      border-radius: 10px;
+    }
+
+    .chat-box::-webkit-scrollbar-thumb {
+      background: #C8102E;
+      border-radius: 10px;
+    }
+  </style>
+
+  <script>
+    // Auto-scroll to bottom
+    const chatBox = document.getElementById('chat-box');
+    chatBox.scrollTop = chatBox.scrollHeight;
+  </script>
+</div>
+{% endblock %}

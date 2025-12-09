@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>{{ item['name'] }}</h2>
+<p>{{ item['description'] }}</p>
+<p>Status: {{ item['status'] }}</p>
+{% if item['status'] == 'Lost' %}
+<a href="{{ url_for('claim', item_id=item['id']) }}"><button>Claim this item</button></a>
+{% endif %}
+{% endblock %}

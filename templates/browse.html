@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="page-container">
+  <h2>Browse Found Items</h2>
+  <p>Here you can see all items that have been reported. Click "Claim" to request an item if it belongs to you.</p>
+
+  <div class="card-grid">
+    {% for item in items %}
+      <div class="item-card">
+        {% if item['image'] %}
+          <img src="{{ url_for('static', filename='uploads/' + item['image']) }}" alt="{{ item['name'] }}">
+        {% endif %}
+
+        <h3>{{ item['name'] }}</h3>
+        <p>{{ item['description'] }}</p>
+        <p class="location">📍 {{ item['location'] }}</p>
+        <a href="{{ url_for('claim', item_id=item['id']) }}" class="cta-button small">Claim</a>
+      </div>
+    {% else %}
+      <p>No items found yet.</p>
+    {% endfor %}
+  </div>
+</div>
+
+<style>
+.page-container {
+  background-color: #ffffff; 
+  color: #000000;
+}
+
+
+.card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 2rem;
+    margin: 3rem 0;
+}
+
+
+.item-card {
+  background-color: #ffffff;
+  color: #000000;
+  border: 1px solid #e0e0e0; /* optional, cleaner look */
+  padding: 1.5rem;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+body {
+  font-family: 'Poppins', sans-serif;
+}
+h1, h2, h3, .logo {
+  font-family: 'Playfair Display', serif;
+  letter-spacing: 0.5px;
+}
+
+.item-card img {
+  max-width: 100%;
+  border-radius: 10px;
+  margin-bottom: 1rem;
+}
+
+.item-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 6px 20px rgba(80,140,164,0.5);
+}
+
+.item-card h3 {
+  margin: 0.5rem 0;
+  color: #0A8754;
+}
+
+.item-card .location {
+  font-size: 0.9rem;
+  color: #004F2D;
+}
+
+.cta-button.small {
+  display: inline-block;
+  margin-top: 1rem;
+  padding: 0.6rem 1.2rem;
+  font-size: 0.9rem;
+  border-radius: 30px;
+  background-color: #0A8754;
+  color: #BFD7EA;
+  text-decoration: none;
+  transition: all 0.3s ease;
+}
+
+.cta-button.small:hover {
+  background-color: #004F2D;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,140,164,0.5);
+}
+
+@keyframes fadeIn {
+  0% { opacity: 0; transform: translateY(20px);}
+  100% { opacity: 1; transform: translateY(0);}
+}
+</style>
+
+
+{% endblock %}

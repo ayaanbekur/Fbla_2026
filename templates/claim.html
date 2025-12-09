@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="claim-container fade-in">
+    <h2>Claim Item</h2>
+    <div class="item-details">
+        <p><strong>Name:</strong> {{ item['name'] }}</p>
+        <p><strong>Description:</strong> {{ item['description'] }}</p>
+        {% if item['location'] %}
+        <p><strong>Location:</strong> {{ item['location'] }}</p>
+        {% endif %}
+        <p><strong>Status:</strong> {{ item['status'] }}</p>
+    </div>
+
+    {% if item['status'] != 'Claimed' %}
+    <form method="POST" class="claim-form">
+        <input type="text" name="claimant" placeholder="Your name" required>
+        <button type="submit" class="cta-button">Claim This Item</button>
+    </form>
+    {% else %}
+    <p class="claimed-msg">This item has already been claimed by {{ item['claimant'] }}.</p>
+    {% endif %}
+</div>
+
+<style>
+body {
+  font-family: 'Poppins', sans-serif;
+}
+h1, h2, h3, .logo {
+  font-family: 'Playfair Display', serif;
+  letter-spacing: 0.5px;
+}
+.claim-container {
+    max-width: 600px;
+    margin: 3rem auto;
+    padding: 3rem;
+    background: #2E1C2B;
+    border-radius: 20px;
+    color: #EAEAEA;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.6);
+    text-align: center;
+}
+
+.item-details p {
+    margin: 0.8rem 0;
+    font-size: 1.1rem;
+}
+
+.claim-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin-top: 2rem;
+}
+
+input[type="text"] {
+    padding: 0.8rem 1.2rem;
+    border-radius: 15px;
+    border: none;
+    font-size: 1rem;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+}
+
+input[type="text"]:focus {
+    outline: none;
+    box-shadow: 0 6px 15px rgba(137,49,104,0.6);
+}
+
+.cta-button {
+    padding: 0.8rem 2rem;
+    border-radius: 35px;
+    font-weight: bold;
+    background-color: #893168;
+    color: #EAEAEA;
+    font-size: 1.1rem;
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.cta-button:hover {
+    background-color: #4A1942;
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px rgba(137,49,104,0.5);
+}
+
+.claimed-msg {
+    font-size: 1.1rem;
+    color: #FFDDEE;
+    margin-top: 2rem;
+}
+
+/* Fade-in animation */
+.fade-in {
+    opacity: 0;
+    transform: translateY(20px);
+    animation: fadeInUp 1s forwards;
+}
+
+@keyframes fadeInUp {
+    0% { opacity: 0; transform: translateY(20px); }
+    100% { opacity: 1; transform: translateY(0); }
+}
+</style>
+{% endblock %}

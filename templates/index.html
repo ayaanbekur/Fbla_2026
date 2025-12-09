@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="hero">
+    <h1 class="fade-in delay-0">Welcome to FCHS Lost & Found</h1>
+    <p class="fade-in delay-1">
+        Never lose track of your belongings again. Our Lost & Found portal helps students and staff report, browse, 
+        and claim lost items efficiently.
+    </p>
+    <p class="fade-in delay-2">
+        Browse through found items, report what you’ve lost, or manage claims securely via our admin panel.
+    </p>
+    <a href="{{ url_for('browse') }}" class="cta-button fade-in delay-3">Go to Lost & Found</a>
+</div>
+
+<style>
+.hero {
+    max-width: 1000px;        /* keeps the card nicely centered on wide screens */
+    margin: 2rem auto;        /* center horizontally with vertical spacing */
+    text-align: center;
+    padding: 4.5rem 2rem;     /* vertical + horizontal padding */
+    background: #ffffff;      /* white card */
+    border-radius: 16px;
+    border: 1px solid rgba(0,0,0,0.04); /* subtle edge for definition */
+    box-shadow: 0 6px 18px rgba(0,0,0,0.08); /* soft shadow */
+    color: #000000;          /* black text */
+}
+
+body {
+  font-family: 'Poppins', sans-serif;
+}
+h1, h2, h3, .logo {
+  font-family: 'Playfair Display', serif;
+  letter-spacing: 0.5px;
+}
+
+/* Title / paragraph colors inside the white card */
+.hero h1 {
+    font-size: 2.8rem;
+    margin-bottom: 0.75rem;
+    color: #C8102E;          /* red accent for title */
+}
+
+.hero p {
+    font-size: 1.05rem;
+    max-width: 760px;
+    margin: 0.75rem auto;
+    color: #333333;
+    line-height: 1.6;
+}
+
+/* Keep CTA button styling consistent (uses your stylesheet .cta-button) */
+/* But ensure it contrasts on white background */
+.hero .cta-button {
+    background: #C8102E;
+    color: #fff;
+    box-shadow: 0 6px 15px rgba(200,20,40,0.18);
+}
+.hero .cta-button:hover {
+    background: #000000;
+    color: #fff;
+}
+
+.cta-button {
+    display: inline-block;
+    margin-top: 2rem;
+    padding: 0.8rem 2rem;
+    font-size: 1.1rem;
+    border-radius: 35px;
+    background-color: #0A8754;
+    color: #BFD7EA;
+    text-decoration: none;
+    font-weight: bold;
+    transition: all 0.3s ease;
+}
+
+.cta-button:hover {
+    background-color: #004F2D;
+    transform: translateY(-3px);
+    box-shadow: 0 6px 20px rgba(10,135,84,0.5);
+}
+
+/* Fade-in animations */
+.fade-in {
+    opacity: 0;
+    transform: translateY(20px);
+    animation: fadeInUp 1s forwards;
+}
+
+.fade-in.delay-0 { animation-delay: 0s; }
+.fade-in.delay-1 { animation-delay: 0.5s; }
+.fade-in.delay-2 { animation-delay: 1s; }
+.fade-in.delay-3 { animation-delay: 1.5s; }
+
+@keyframes fadeInUp {
+    0% { opacity: 0; transform: translateY(20px);}
+    100% { opacity: 1; transform: translateY(0);}
+}
+</style>
+{% endblock %}

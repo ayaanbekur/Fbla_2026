@@ -1,0 +1,237 @@
+{% extends "base.html" %}
+
+{% block title %}Chat with Alex - AI Assistant{% endblock %}
+
+{% block content %}
+<div class="ai-chat-page">
+  <h1 style="color: #C8102E; font-family: 'Playfair Display', serif; text-align: center; margin-bottom: 0.5rem;">💬 Chat with Alex</h1>
+  <p style="text-align: center; color: #666; margin-bottom: 2rem; font-size: 1.05rem;">Your friendly AI assistant is here to help</p>
+
+  <div class="chat-container">
+    <div id="messages" class="messages-box">
+      <div class="message ai-message">
+        <strong>Alex:</strong> Hi there! I'm Alex, your friendly AI assistant. How can I help you today?
+      </div>
+    </div>
+
+    <form id="chat-form" class="chat-input-form">
+      <input 
+        type="text" 
+        id="message-input" 
+        placeholder="Type your message here..." 
+        autocomplete="off" 
+        required
+      >
+      <button type="submit" class="cta-button send-btn">Send</button>
+    </form>
+  </div>
+
+  <style>
+    .ai-chat-page {
+      max-width: 700px;
+      margin: 0 auto;
+    }
+
+    .chat-container {
+      background: #ffffff;
+      border: 2px solid #e0e0e0;
+      border-radius: 16px;
+      padding: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      height: 500px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    .messages-box {
+      flex: 1;
+      overflow-y: auto;
+      margin-bottom: 1rem;
+      padding-right: 8px;
+    }
+
+    .messages-box::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    .messages-box::-webkit-scrollbar-track {
+      background: #f1f1f1;
+      border-radius: 10px;
+    }
+
+    .messages-box::-webkit-scrollbar-thumb {
+      background: #C8102E;
+      border-radius: 10px;
+    }
+
+    .messages-box::-webkit-scrollbar-thumb:hover {
+      background: #D72638;
+    }
+
+    .message {
+      margin-bottom: 12px;
+      padding: 12px 14px;
+      border-radius: 10px;
+      line-height: 1.5;
+      word-wrap: break-word;
+      font-family: 'Poppins', sans-serif;
+    }
+
+    .message strong {
+      display: block;
+      margin-bottom: 4px;
+      font-size: 0.95rem;
+      font-weight: 600;
+    }
+
+    .user-message {
+      background: #C8102E;
+      color: #fff;
+      margin-left: 20px;
+      text-align: left;
+      border-radius: 10px 10px 0 10px;
+    }
+
+    .user-message strong {
+      color: #BFD7EA;
+    }
+
+    .ai-message {
+      background: #f8f8f8;
+      color: #222;
+      margin-right: 20px;
+      border-radius: 10px 10px 10px 0;
+      border-left: 4px solid #C8102E;
+    }
+
+    .ai-message strong {
+      color: #C8102E;
+    }
+
+    .loading-message {
+      color: #999;
+      font-style: italic;
+      text-align: center;
+      padding: 12px;
+      font-size: 0.95rem;
+    }
+
+    .chat-input-form {
+      display: flex;
+      gap: 10px;
+    }
+
+    .chat-input-form input {
+      flex: 1;
+      padding: 12px 14px;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      font-family: 'Poppins', sans-serif;
+      font-size: 1rem;
+      background: #ffffff;
+      transition: all 0.3s ease;
+    }
+
+    .chat-input-form input:focus {
+      outline: none;
+      border-color: #C8102E;
+      box-shadow: 0 0 10px rgba(200, 16, 46, 0.15);
+    }
+
+    .chat-input-form input::placeholder {
+      color: #aaa;
+    }
+
+    .send-btn {
+      padding: 12px 28px;
+      min-width: 100px;
+      background-color: #C8102E;
+      transition: all 0.3s ease;
+    }
+
+    .send-btn:hover {
+      background-color: #D72638;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(200, 16, 46, 0.4);
+    }
+
+    .error-message {
+      background: #f8d7da;
+      color: #721c24;
+      padding: 12px 14px;
+      border-radius: 8px;
+      margin-bottom: 10px;
+      border-left: 4px solid #f5c2c7;
+      font-family: 'Poppins', sans-serif;
+    }
+  </style>
+
+  <script>
+    document.getElementById('chat-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const input = document.getElementById('message-input');
+      const msg = input.value.trim();
+      if (!msg) return;
+
+      // Add user message to display
+      const messagesBox = document.getElementById('messages');
+      const userDiv = document.createElement('div');
+      userDiv.className = 'message user-message';
+      userDiv.innerHTML = `<strong>You:</strong> ${escapeHtml(msg)}`;
+      messagesBox.appendChild(userDiv);
+      input.value = '';
+      messagesBox.scrollTop = messagesBox.scrollHeight;
+
+      // Show loading indicator
+      const loadingDiv = document.createElement('div');
+      loadingDiv.className = 'message loading-message';
+      loadingDiv.textContent = 'Alex is typing...';
+      messagesBox.appendChild(loadingDiv);
+      messagesBox.scrollTop = messagesBox.scrollHeight;
+
+      try {
+        const resp = await fetch('{{ url_for("ai_chat") }}', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: msg })
+        });
+
+        loadingDiv.remove();
+
+        if (!resp.ok) {
+          const errorData = await resp.json();
+          const errorDiv = document.createElement('div');
+          errorDiv.className = 'message error-message';
+          errorDiv.innerHTML = `<strong>Error:</strong> ${escapeHtml(errorData.error || 'Unknown error')}`;
+          messagesBox.appendChild(errorDiv);
+        } else {
+          const data = await resp.json();
+          const aiDiv = document.createElement('div');
+          aiDiv.className = 'message ai-message';
+          aiDiv.innerHTML = `<strong>Alex:</strong> ${escapeHtml(data.reply)}`;
+          messagesBox.appendChild(aiDiv);
+        }
+      } catch (err) {
+        loadingDiv.remove();
+        const errDiv = document.createElement('div');
+        errDiv.className = 'message error-message';
+        errDiv.innerHTML = `<strong>Error:</strong> ${escapeHtml(err.message)}`;
+        messagesBox.appendChild(errDiv);
+      }
+
+      messagesBox.scrollTop = messagesBox.scrollHeight;
+    });
+
+    function escapeHtml(text) {
+      const map = {
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#039;'
+      };
+      return text.replace(/[&<>"']/g, m => map[m]);
+    }
+  </script>
+</div>
+{% endblock %}

@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+
+{% block title %}Admin - Chat Management{% endblock %}
+
+{% block content %}
+<div class="admin-chat-manage">
+  <h1 style="color: #C8102E; font-family: 'Playfair Display', serif; margin-bottom: 1rem;">📋 User Conversations</h1>
+  
+  <div class="conversations-list">
+    {% if user_chats %}
+      {% for chat in user_chats %}
+        <div class="conversation-item">
+          <div class="conversation-header">
+            <h3>{{ chat.user_name }}</h3>
+            <p class="user-email">{{ chat.user_email }}</p>
+          </div>
+          <div class="conversation-preview">
+            <p class="last-message">{{ chat.last_message[:60] }}...</p>
+            {% if chat.last_timestamp %}
+              <span class="timestamp">{{ chat.last_timestamp.strftime("%b %d, %H:%M") }}</span>
+            {% endif %}
+          </div>
+          <a href="{{ url_for('admin_view_chat', user_id=chat.user_id) }}" class="cta-button view-btn">View Chat</a>
+        </div>
+      {% endfor %}
+    {% else %}
+      <p style="text-align: center; color: #999; padding: 2rem;">No conversations yet</p>
+    {% endif %}
+  </div>
+
+  <style>
+    .admin-chat-manage {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    .conversations-list {
+      display: grid;
+      gap: 1rem;
+    }
+
+    .conversation-item {
+      background: #ffffff;
+      border: 2px solid #e0e0e0;
+      border-radius: 12px;
+      padding: 1.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      transition: all 0.3s ease;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    }
+
+    .conversation-item:hover {
+      border-color: #C8102E;
+      box-shadow: 0 4px 12px rgba(200, 16, 46, 0.15);
+      transform: translateY(-2px);
+    }
+
+    .conversation-header {
+      flex: 1;
+    }
+
+    .conversation-header h3 {
+      margin: 0 0 0.3rem 0;
+      color: #222;
+      font-family: 'Playfair Display', serif;
+      font-size: 1.2rem;
+    }
+
+    .user-email {
+      margin: 0;
+      color: #666;
+      font-size: 0.9rem;
+    }
+
+    .conversation-preview {
+      flex: 1;
+      margin: 0 2rem;
+    }
+
+    .last-message {
+      margin: 0 0 0.3rem 0;
+      color: #555;
+      font-size: 0.95rem;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .timestamp {
+      font-size: 0.85rem;
+      color: #999;
+    }
+
+    .view-btn {
+      padding: 0.6rem 1.4rem;
+      font-size: 0.9rem;
+      white-space: nowrap;
+    }
+
+    @media (max-width: 768px) {
+      .conversation-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+      }
+
+      .conversation-preview {
+        margin: 0;
+        width: 100%;
+      }
+
+      .view-btn {
+        width: 100%;
+        text-align: center;
+      }
+    }
+  </style>
+</div>
+{% endblock %}

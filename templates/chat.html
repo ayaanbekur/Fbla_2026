@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="form-container fade-in">
+    <h2>{{ chat_type }} Chat</h2>  <!-- Show chat type -->
+
+    <div class="chat-box" id="chat-box">
+        {% for msg in messages %}
+            <div class="chat-message {% if msg.get('is_self') %}self{% else %}other{% endif %}">
+                <strong>{{ msg.sender_name or 'Unknown' }}:</strong> {{ msg.content }}
+                <span class="timestamp">{{ msg.timestamp.strftime("%b %d, %H:%M") if msg.timestamp else '' }}</span>
+            </div>
+        {% endfor %}
+    </div>
+
+    <form method="POST" style="margin-top:1rem;">
+        <textarea name="content" placeholder="Type your message..." required></textarea>
+        <button type="submit" class="cta-button">Send</button>
+    </form>
+</div>
+
+<style>
+body {
+  font-family: 'Poppins', sans-serif;
+}
+h1, h2, h3, .logo {
+  font-family: 'Playfair Display', serif;
+  letter-spacing: 0.5px;
+}
+.chat-box {
+    max-height: 400px;
+    overflow-y: auto;
+    background: #fff;
+    border-radius: 15px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.2);
+    text-align: left;
+    display: flex;
+    flex-direction: column;
+}
+
+.chat-message {
+    padding: 0.5rem 1rem;
+    margin: 0.5rem 0;
+    border-radius: 12px;
+    font-size: 0.95rem;
+    max-width: 70%;
+}
+
+.chat-message.self {
+    background: #e63946;
+    color: white;
+    align-self: flex-end;
+}
+
+.chat-message.other {
+    background: #f1f1f1;
+    color: black;
+    align-self: flex-start;
+}
+
+.timestamp {
+    display: block;
+    font-size: 0.75rem;
+    color: gray;
+    margin-top: 0.2rem;
+}
+</style>
+{% endblock %}

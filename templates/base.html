@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Lost & Found{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+
+  <!-- Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&family=Playfair+Display:wght@600&display=swap" rel="stylesheet">
+
+  <style>
+    /* Fix base layout */
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      background-color: #f8f8f8;
+      font-family: 'Poppins', sans-serif;
+    }
+
+    /* Navbar */
+    nav {
+      background-color: #C8102E;
+      padding: 15px 40px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.8);
+    }
+
+    nav .logo a {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.6rem;
+      font-weight: bold;
+      color: #000;
+      text-decoration: none;
+    }
+
+    nav ul {
+      list-style: none;
+      display: flex;
+      align-items: center;
+      gap: 25px;
+      margin: 0;
+      padding: 0;
+    }
+
+    nav ul li {
+      position: relative;
+    }
+
+    nav ul li a {
+      text-decoration: none;
+      color: #FFFFFF;
+      font-size: 1rem;
+      padding: 8px 16px;
+      border-radius: 6px;
+      transition: all 0.3s ease;
+    }
+
+    nav ul li a:hover {
+      background-color: #D72638;
+      box-shadow: 0 4px 12px rgba(215,38,56,0.5);
+      transform: translateY(-2px);
+    }
+
+    /* Dropdown menu */
+    nav ul li .dropdown-menu {
+      display: none;
+      flex-direction: column;
+      position: absolute;
+      top: 100%;
+      left: 0;
+      background-color: #C8102E;
+      border-radius: 8px;
+      min-width: 160px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
+
+    nav ul li:hover .dropdown-menu {
+      display: flex;
+    }
+
+    nav ul li .dropdown-menu a {
+      padding: 10px 16px;
+      color: #fff;
+      text-decoration: none;
+      transition: background 0.2s ease;
+    }
+
+    nav ul li .dropdown-menu a:hover {
+      background-color: #D72638;
+    }
+
+    /* Center content & fix spacing */
+    .content-wrapper {
+      flex: 1;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      width: 100%;
+      padding: 40px 20px;
+      box-sizing: border-box;
+    }
+
+    .container {
+      background: #ffffff;
+      border-radius: 16px;
+      padding: 2rem;
+      box-shadow: 0 6px 18px rgba(0,0,0,0.15);
+      width: 100%;
+      max-width: 1000px;
+    }
+
+    /* Buttons */
+    .cta-button {
+      padding: 0.8rem 2rem;
+      border-radius: 35px;
+      font-weight: 600;
+      background-color: #D72638;
+      color: #FFFFFF;
+      font-size: 1.1rem;
+      border: none;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .cta-button:hover {
+      background-color: #FF4D5A;
+      transform: translateY(-3px);
+      box-shadow: 0 8px 20px rgba(215,38,56,0.6);
+    }
+
+    /* Footer fix */
+    footer {
+      background-color: #000;
+      color: #ccc;
+      text-align: center;
+      padding: 20px;
+      font-size: 0.9rem;
+      width: 100%;
+      margin-top: auto;
+    }
+  </style>
+</head>
+
+<body>
+  <!-- Navbar -->
+  <nav>
+
+    <!-- Christmas Decorations -->
+    <img id="xmas-tree" src="{{ url_for('static', filename='images/xmas_tree.png') }}"
+         alt="Christmas tree"
+         style="position:fixed;right:18px;bottom:18px;width:140px;pointer-events:none;z-index:900;opacity:0.95;">
+
+    <div id="snow-wrapper"
+         aria-hidden="true"
+         style="position:fixed;left:0;top:0;right:0;bottom:0;pointer-events:none;z-index:800;"></div>
+
+    <div id="xmas-modal"
+         style="position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(200,0,0,0.95);z-index:2000;visibility:hidden;opacity:0;transition:opacity .35s;">
+      <div style="background:#fff;border-radius:18px;padding:28px;max-width:420px;width:92%;text-align:center;box-shadow:0 18px 50px rgba(0,0,0,0.45);position:relative;">
+        <img src="{{ url_for('static', filename='images/present.png') }}" alt="present" style="width:88px;margin-bottom:14px;">
+        <h2 style="margin:0 0 8px;color:#C8102E;font-family:'Playfair Display',serif;">Holiday surprise</h2>
+        <p id="days-until-xmas" style="margin:0 0 14px;font-size:1.05rem;color:#222"></p>
+        <button id="close-xmas" class="cta-button" style="background:#000;color:#fff;border-radius:12px;padding:10px 14px;">Close</button>
+        <button id="dismiss-xmas"
+                style="position:absolute;top:8px;right:12px;border:none;background:none;color:#999;font-size:18px;cursor:pointer;">
+          ✕
+        </button>
+      </div>
+    </div>
+
+    <script>
+      (function initXmas(){
+        const modal = document.getElementById('xmas-modal');
+        const close = document.getElementById('close-xmas');
+        const dismiss = document.getElementById('dismiss-xmas');
+        const seen = sessionStorage.getItem('xmas_seen_v1');
+
+        function daysUntilXmas() {
+          const now = new Date();
+          let year = now.getFullYear();
+          const xmas = new Date(year, 11, 25);
+          if (now > xmas) xmas.setFullYear(year + 1);
+          return Math.ceil((xmas - now) / (1000*60*60*24));
+        }
+
+        const daysNode = document.getElementById('days-until-xmas');
+        const days = daysUntilXmas();
+        daysNode.textContent = `${days} day${days === 1 ? '' : 's'} until Christmas! 🎄`;
+
+        if (!seen) {
+          modal.style.visibility = 'visible';
+          modal.style.opacity = '1';
+          sessionStorage.setItem('xmas_seen_v1', '1');
+        }
+
+        function hide() {
+          modal.style.opacity = '0';
+          setTimeout(() => modal.style.visibility = 'hidden', 350);
+        }
+
+        close.addEventListener('click', hide);
+        dismiss.addEventListener('click', hide);
+
+        const wrapper = document.getElementById('snow-wrapper');
+        const COUNT = Math.min(140, Math.round(window.innerWidth/6));
+
+        for (let i = 0; i < COUNT; i++) {
+          const flake = document.createElement('div');
+
+          const size = Math.random()*6 + 4;
+          flake.style.position = 'absolute';
+          flake.style.left = (Math.random()*100) + '%';
+          flake.style.top = (Math.random()*-100) + 'vh';
+          flake.style.width = size+'px';
+          flake.style.height = size+'px';
+          flake.style.borderRadius = '50%';
+          flake.style.background = `rgba(255,255,255,${0.6 + Math.random()*0.4})`;
+          flake.style.pointerEvents = 'none';
+          wrapper.appendChild(flake);
+
+          const dur = 8 + Math.random()*14;
+          const delay = Math.random()* -dur;
+
+          flake.animate(
+            [
+              { transform: `translateY(0)` },
+              { transform: `translateY(${window.innerHeight+200}px) translateX(${Math.random()*200-100}px)` }
+            ],
+            {
+              duration: dur*1000,
+              iterations: Infinity,
+              delay: delay*1000,
+              easing: 'linear'
+            }
+          );
+        }
+      })();
+    </script>
+
+    <!-- Logo -->
+    <div class="logo">
+      <a href="{{ url_for('index') }}">Lost & Found</a>
+    </div>
+
+    <!-- Menu -->
+    <ul>
+      <li><a href="{{ url_for('browse') }}">Browse</a></li>
+      <li><a href="{{ url_for('report') }}">Report</a></li>
+
+      <!-- Chat dropdown -->
+      {% if current_user.is_authenticated %}
+        <li>
+          <a href="#">Chat &#9662;</a>
+          <div class="dropdown-menu">
+            <a href="{{ url_for('global_chat') }}">🌐 Global Chat</a>
+            <a href="{{ url_for('admin_chat') }}">👤 Chat with Admin</a>
+            <a href="{{ url_for('ai_chat_page') }}">🤖 Chat with Alex (AI)</a>
+          </div>
+        </li>
+      {% endif %}
+
+      <!-- Admin Tools dropdown (admin only) -->
+      {% if session.get('admin') or (current_user.is_authenticated and current_user.is_admin) %}
+        <li>
+          <a href="#">⚙️ Admin Tools &#9662;</a>
+          <div class="dropdown-menu">
+            <a href="{{ url_for('admin') }}">📊 Dashboard</a>
+            <a href="{{ url_for('admin_logout') }}">🚪 Logout</a>
+          </div>
+        </li>
+      {% endif %}
+
+      {% if current_user.is_authenticated %}
+        <li><a href="{{ url_for('logout') }}">Logout</a></li>
+      {% else %}
+        <li><a href="{{ url_for('login') }}">Login</a></li>
+        <li><a href="{{ url_for('signup') }}">Signup</a></li>
+      {% endif %}
+    </ul>
+  </nav>
+
+  <!-- Content -->
+  <div class="content-wrapper">
+    <div class="container">
+      {% block content %}{% endblock %}
+    </div>
+  </div>
+
+  <footer>
+    &copy; {{ now().year }} Lost & Found
+  </footer>
+</body>
+</html>
