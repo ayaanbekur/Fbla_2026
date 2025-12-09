@@ -50,6 +50,27 @@
       display: block;
     }
 
+    /* Mobile nav toggle (hamburger) */
+    .nav-toggle {
+      display: none;
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 6px;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .nav-toggle span {
+      display: block;
+      width: 22px;
+      height: 3px;
+      margin: 4px 0;
+      background: #ffffff;
+      border-radius: 3px;
+      transition: transform 0.2s ease, opacity 0.2s ease;
+    }
+
     nav ul {
       list-style: none;
       display: flex;
@@ -104,6 +125,27 @@
 
     nav ul li .dropdown-menu a:hover {
       background-color: #D72638;
+    }
+
+    /* Responsive: mobile styles */
+    @media (max-width: 768px) {
+      nav { padding: 12px 18px; }
+      .nav-toggle { display: flex; }
+      nav ul {
+        display: none; /* hidden by default on mobile */
+        position: absolute;
+        top: 64px;
+        right: 18px;
+        background-color: #C8102E;
+        flex-direction: column;
+        gap: 0;
+        padding: 8px;
+        border-radius: 8px;
+        min-width: 160px;
+        box-shadow: 0 8px 30px rgba(0,0,0,0.25);
+      }
+      nav ul.open { display: flex; }
+      nav ul li a { padding: 10px 14px; white-space: nowrap; }
     }
 
     /* Center content & fix spacing */
@@ -261,6 +303,13 @@
       </a>
     </div>
 
+    <!-- Mobile nav toggle -->
+    <button id="nav-toggle" class="nav-toggle" aria-label="Toggle navigation" aria-expanded="false">
+      <span></span>
+      <span></span>
+      <span></span>
+    </button>
+
     <!-- Menu -->
     <ul>
       <li><a href="{{ url_for('browse') }}">Browse</a></li>
@@ -297,6 +346,30 @@
       {% endif %}
     </ul>
   </nav>
+
+  <script>
+    // Mobile nav toggle script
+    (function(){
+      const toggle = document.getElementById('nav-toggle');
+      const menu = document.querySelector('nav ul');
+      if (!toggle || !menu) return;
+      toggle.addEventListener('click', function(e){
+        const expanded = this.getAttribute('aria-expanded') === 'true';
+        this.setAttribute('aria-expanded', (!expanded).toString());
+        menu.classList.toggle('open');
+      });
+
+      // close menu when clicking outside
+      document.addEventListener('click', function(e){
+        if (!menu.classList.contains('open')) return;
+        const isClickInside = menu.contains(e.target) || toggle.contains(e.target);
+        if (!isClickInside) {
+          menu.classList.remove('open');
+          toggle.setAttribute('aria-expanded', 'false');
+        }
+      });
+    })();
+  </script>
 
   <!-- Content -->
   <div class="content-wrapper">
