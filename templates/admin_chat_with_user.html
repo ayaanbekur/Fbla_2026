@@ -1,0 +1,218 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="admin-chat-container fade-in">
+    <div class="chat-header">
+        <div class="user-header">
+            <h2>Chat with {{ user.name }}</h2>
+            <p class="user-email-header">{{ user.email }}</p>
+        </div>
+        <a href="{{ url_for('admin_chat_users') }}" class="back-link">← Back to Users</a>
+    </div>
+
+    <div class="chat-messages">
+        {% if messages %}
+            {% for msg in messages %}
+                <div class="message {% if msg.sender_id == 1 %}sent{% else %}received{% endif %}">
+                    <div class="message-content">
+                        <p>{{ msg.content }}</p>
+                        <span class="message-time">{{ msg.timestamp.strftime('%m/%d/%Y %I:%M %p') if msg.timestamp else 'Unknown' }}</span>
+                    </div>
+                </div>
+            {% endfor %}
+        {% else %}
+            <p class="no-messages">No messages yet. Start the conversation!</p>
+        {% endif %}
+    </div>
+
+    <form method="POST" action="{{ url_for('admin_send_to_user', user_id=user.id) }}" class="message-form">
+        <textarea name="content" placeholder="Type your message..." required rows="3"></textarea>
+        <button type="submit" class="send-button">Send Message</button>
+    </form>
+</div>
+
+<style>
+.admin-chat-container {
+    max-width: 700px;
+    margin: 3rem auto;
+    padding: 2rem;
+    background: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+    display: flex;
+    flex-direction: column;
+    height: calc(100vh - 200px);
+}
+
+.chat-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    border-bottom: 2px solid #0A8754;
+    padding-bottom: 1rem;
+}
+
+.user-header h2 {
+    margin: 0 0 0.5rem 0;
+    color: #000000;
+}
+
+.user-email-header {
+    margin: 0;
+    font-size: 0.95rem;
+    color: #666;
+}
+
+.back-link {
+    color: #0A8754;
+    text-decoration: none;
+    font-weight: bold;
+    transition: all 0.3s ease;
+    white-space: nowrap;
+    margin-left: 1rem;
+}
+
+.back-link:hover {
+    color: #004F2D;
+    text-decoration: underline;
+}
+
+.chat-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 1.5rem 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.message {
+    display: flex;
+    animation: fadeInUp 0.4s ease;
+}
+
+.message.sent {
+    justify-content: flex-end;
+}
+
+.message.received {
+    justify-content: flex-start;
+}
+
+.message-content {
+    max-width: 60%;
+    padding: 0.8rem 1.2rem;
+    border-radius: 8px;
+}
+
+.message.sent .message-content {
+    background: #0A8754;
+    color: #ffffff;
+}
+
+.message.received .message-content {
+    background: #f0f0f0;
+    color: #000000;
+}
+
+.message-time {
+    display: block;
+    font-size: 0.75rem;
+    margin-top: 0.4rem;
+    opacity: 0.7;
+}
+
+.message p {
+    margin: 0;
+    word-wrap: break-word;
+}
+
+.no-messages {
+    text-align: center;
+    color: #999;
+    padding: 2rem;
+    font-size: 1.1rem;
+}
+
+.message-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin-top: 1.5rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid #e6e6e6;
+}
+
+.message-form textarea {
+    padding: 0.8rem 1.2rem;
+    border-radius: 8px;
+    border: 1px solid #e6e6e6;
+    font-size: 0.95rem;
+    font-family: 'Poppins', sans-serif;
+    resize: vertical;
+}
+
+.message-form textarea:focus {
+    outline: none;
+    border-color: #0A8754;
+    box-shadow: 0 4px 12px rgba(10,135,84,0.12);
+}
+
+.send-button {
+    padding: 0.8rem 2rem;
+    border-radius: 35px;
+    font-weight: bold;
+    background-color: #0A8754;
+    color: #ffffff;
+    font-size: 1rem;
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    align-self: flex-end;
+}
+
+.send-button:hover {
+    background-color: #004F2D;
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px rgba(10,135,84,0.12);
+}
+
+/* Fade-in animation */
+.fade-in {
+    opacity: 0;
+    transform: translateY(20px);
+    animation: fadeInUp 1s forwards;
+}
+
+@keyframes fadeInUp {
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+    .admin-chat-container {
+        margin: 1rem;
+        padding: 1.5rem;
+        height: auto;
+    }
+    
+    .chat-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+    
+    .back-link {
+        margin-left: 0;
+    }
+    
+    .message-content {
+        max-width: 85%;
+    }
+}
+</style>
+{% endblock %}

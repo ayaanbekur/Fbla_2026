@@ -1,0 +1,156 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="admin-chat-container fade-in">
+    <div class="chat-header">
+        <h2>Admin Chat - Select User</h2>
+        <a href="{{ url_for('admin') }}" class="back-link">← Back to Dashboard</a>
+    </div>
+
+    <div class="users-list">
+        {% if users %}
+            {% for user in users %}
+                {% if user.id != 1 %}
+                    <a href="{{ url_for('admin_chat_with', user_id=user.id) }}" class="user-card">
+                        <div class="user-info">
+                            <h3>{{ user.name }}</h3>
+                            <p class="user-email">{{ user.email }}</p>
+                        </div>
+                        <div class="user-action">
+                            <span class="arrow">→</span>
+                        </div>
+                    </a>
+                {% endif %}
+            {% endfor %}
+        {% else %}
+            <p class="no-users">No users found on the system.</p>
+        {% endif %}
+    </div>
+</div>
+
+<style>
+.admin-chat-container {
+    max-width: 700px;
+    margin: 3rem auto;
+    padding: 2rem;
+    background: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+}
+
+.chat-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    border-bottom: 2px solid #0A8754;
+    padding-bottom: 1rem;
+}
+
+.chat-header h2 {
+    margin: 0;
+    color: #000000;
+}
+
+.back-link {
+    color: #0A8754;
+    text-decoration: none;
+    font-weight: bold;
+    transition: all 0.3s ease;
+}
+
+.back-link:hover {
+    color: #004F2D;
+    text-decoration: underline;
+}
+
+.users-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.user-card {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.2rem;
+    background: #f8f8f8;
+    border-radius: 8px;
+    border-left: 4px solid #0A8754;
+    text-decoration: none;
+    color: #000000;
+    transition: all 0.3s ease;
+}
+
+.user-card:hover {
+    background: #0A8754;
+    color: #ffffff;
+    transform: translateX(8px);
+    box-shadow: 0 6px 15px rgba(10,135,84,0.2);
+}
+
+.user-info {
+    flex: 1;
+}
+
+.user-info h3 {
+    margin: 0 0 0.5rem 0;
+    font-size: 1.2rem;
+}
+
+.user-email {
+    margin: 0;
+    font-size: 0.95rem;
+    opacity: 0.8;
+}
+
+.user-card:hover .user-email {
+    opacity: 1;
+}
+
+.arrow {
+    font-size: 1.5rem;
+    font-weight: bold;
+}
+
+.no-users {
+    text-align: center;
+    color: #999;
+    padding: 2rem;
+    font-size: 1.1rem;
+}
+
+/* Fade-in animation */
+.fade-in {
+    opacity: 0;
+    transform: translateY(20px);
+    animation: fadeInUp 1s forwards;
+}
+
+@keyframes fadeInUp {
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+    .admin-chat-container {
+        margin: 1rem;
+        padding: 1.5rem;
+    }
+    
+    .chat-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+    
+    .user-card {
+        padding: 1rem;
+    }
+}
+</style>
+{% endblock %}

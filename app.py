@@ -629,6 +629,90 @@ def admin_mark_claimed(item_id):
     return redirect(url_for("browse"))
 
 
+# Admin: approve a claim request (POST)
+@app.route("/admin/approve_claim/<int:claim_id>", methods=['POST'])
+def admin_approve_claim(claim_id):
+    from init_db import ClaimRequest
+    if not session.get("admin"):
+        return redirect(url_for("admin_login"))
+    
+    claim = db.session.query(ClaimRequest).get(claim_id)
+    if not claim:
+        return redirect(url_for("admin"))
+    
+    claim.status = 'approved'
+    db.session.commit()
+    session['admin_action_msg'] = f'Claim request from {claim.claimant_name} approved'
+    return redirect(url_for("admin"))
+
+
+# Admin: reject a claim request (POST)
+@app.route("/admin/reject_claim/<int:claim_id>", methods=['POST'])
+def admin_reject_claim(claim_id):
+    from init_db import ClaimRequest
+    if not session.get("admin"):
+        return redirect(url_for("admin_login"))
+    
+    claim = db.session.query(ClaimRequest).get(claim_id)
+    if not claim:
+        return redirect(url_for("admin"))
+    
+    claim.status = 'rejected'
+    db.session.commit()
+    session['admin_action_msg'] = f'Claim request from {claim.claimant_name} rejected'
+    return redirect(url_for("admin"))
+
+
+# Admin: get list of users to chat with
+@app.route("/admin/chat_users", methods=['GET'])
+def admin_chat_users():
+    if not session.get("admin"):
+        return redirect(url_for("admin_login"))
+    
+    users = User.query.all()
+    return render_template("admin_chat_users.html", users=users)
+
+
+# Admin: start chat with a specific user
+@app.route("/admin/chat_with/<int:user_id>", methods=['GET'])
+def admin_chat_with(user_id):
+    if not session.get("admin"):
+        return redirect(url_for("admin_login"))
+    
+    user = User.query.get(user_id)
+    if not user:
+        return redirect(url_for("admin_chat_users"))
+    
+    # Fetch chat history
+    admin_id = 1  # Assuming admin user has id=1; adjust if needed
+    messages = db.session.query(Message).filter(
+        ((Message.sender_id == admin_id) & (Message.receiver_id == user_id)) |
+        ((Message.sender_id == user_id) & (Message.receiver_id == admin_id))
+    ).order_by(Message.timestamp).all()
+    
+    return render_template("admin_chat_with_user.html", user=user, messages=messages)
+
+
+# Admin: send message to user
+@app.route("/admin/send_to_user/<int:user_id>", methods=['POST'])
+def admin_send_to_user(user_id):
+    if not session.get("admin"):
+        return redirect(url_for("admin_login"))
+    
+    user = User.query.get(user_id)
+    if not user:
+        return redirect(url_for("admin_chat_users"))
+    
+    content = request.form.get("message", "").strip()
+    if content:
+        admin_id = 1  # Assuming admin user has id=1
+        message = Message(sender_id=admin_id, receiver_id=user_id, content=content)
+        db.session.add(message)
+        db.session.commit()
+    
+    return redirect(url_for("admin_chat_with", user_id=user_id))
+
+
 # Run
 if __name__ == "__main__":
     app.run(debug=True)

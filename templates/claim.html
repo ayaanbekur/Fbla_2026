@@ -12,13 +12,33 @@
         <p><strong>Status:</strong> {{ item['status'] }}</p>
     </div>
 
-    {% if item['status'] != 'Claimed' %}
     <form method="POST" class="claim-form">
         <input type="text" name="claimant" placeholder="Your name" required>
-        <button type="submit" class="cta-button">Claim This Item</button>
+        <button type="submit" class="cta-button">Submit Claim Request</button>
     </form>
-    {% else %}
-    <p class="claimed-msg">This item has already been claimed by {{ item['claimant'] }}.</p>
+
+    <!-- Show pending claims -->
+    {% if pending_claims %}
+    <div class="claims-section">
+        <h3>Pending Claims</h3>
+        <ul class="claims-list">
+        {% for claim in pending_claims %}
+            <li>{{ claim.claimant_name }} - <span class="status-badge pending">Pending Approval</span></li>
+        {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+
+    <!-- Show approved claims -->
+    {% if approved_claims %}
+    <div class="claims-section approved">
+        <h3>Approved Claims</h3>
+        <ul class="claims-list">
+        {% for claim in approved_claims %}
+            <li>{{ claim.claimant_name }} - <span class="status-badge approved">Approved</span></li>
+        {% endfor %}
+        </ul>
+    </div>
     {% endif %}
 </div>
 
@@ -85,10 +105,50 @@ h1, h2, h3, .logo {
     box-shadow: 0 8px 20px rgba(10,135,84,0.12);
 }
 
-.claimed-msg {
-    font-size: 1.1rem;
-    color: #FFDDEE;
+.claims-section {
     margin-top: 2rem;
+    padding: 1.5rem;
+    background: #f0f0f0;
+    border-radius: 8px;
+    text-align: left;
+}
+
+.claims-section h3 {
+    margin-top: 0;
+    color: #0A8754;
+}
+
+.claims-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.claims-list li {
+    padding: 0.8rem;
+    margin: 0.5rem 0;
+    background: #ffffff;
+    border-radius: 6px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.status-badge {
+    font-size: 0.85rem;
+    padding: 0.4rem 0.8rem;
+    border-radius: 20px;
+    font-weight: bold;
+}
+
+.status-badge.pending {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.status-badge.approved {
+    background: #d4edda;
+    color: #155724;
 }
 
 /* Fade-in animation */
@@ -97,6 +157,7 @@ h1, h2, h3, .logo {
     transform: translateY(20px);
     animation: fadeInUp 1s forwards;
 }
+
 
 @keyframes fadeInUp {
     0% { opacity: 0; transform: translateY(20px); }
