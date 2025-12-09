@@ -68,7 +68,7 @@
       margin: 4px 0;
       background: #ffffff;
       border-radius: 3px;
-      transition: transform 0.2s ease, opacity 0.2s ease;
+      transition: transform 0.25s ease, opacity 0.25s ease;
     }
 
     nav ul {
@@ -131,21 +131,28 @@
     @media (max-width: 768px) {
       nav { padding: 12px 18px; }
       .nav-toggle { display: flex; }
+      /* Full-screen overlay menu on mobile */
       nav ul {
         display: none; /* hidden by default on mobile */
-        position: absolute;
-        top: 64px;
-        right: 18px;
-        background-color: #C8102E;
+        position: fixed;
+        inset: 0; /* top:0; right:0; bottom:0; left:0 */
+        background-color: rgba(200,16,46,0.98);
         flex-direction: column;
-        gap: 0;
-        padding: 8px;
-        border-radius: 8px;
-        min-width: 160px;
-        box-shadow: 0 8px 30px rgba(0,0,0,0.25);
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+        padding: 24px;
       }
       nav ul.open { display: flex; }
-      nav ul li a { padding: 10px 14px; white-space: nowrap; }
+      nav ul li a { padding: 12px 18px; white-space: nowrap; font-size:1.2rem; }
+
+      /* transform hamburger into an X when open */
+      .nav-toggle[aria-expanded="true"] span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+      .nav-toggle[aria-expanded="true"] span:nth-child(2) { opacity: 0; transform: scaleX(0); }
+      .nav-toggle[aria-expanded="true"] span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+
+      /* Hide holiday decorations on small screens to avoid overflow */
+      #xmas-tree, #snow-wrapper, #xmas-modal { display: none !important; }
     }
 
     /* Center content & fix spacing */
@@ -348,26 +355,38 @@
   </nav>
 
   <script>
-    // Mobile nav toggle script
+    // Mobile nav toggle script (toggling overlay + X animation)
     (function(){
       const toggle = document.getElementById('nav-toggle');
       const menu = document.querySelector('nav ul');
       if (!toggle || !menu) return;
+
+      function openMenu() {
+        toggle.setAttribute('aria-expanded', 'true');
+        menu.classList.add('open');
+        document.body.classList.add('mobile-menu-open');
+      }
+
+      function closeMenu() {
+        toggle.setAttribute('aria-expanded', 'false');
+        menu.classList.remove('open');
+        document.body.classList.remove('mobile-menu-open');
+      }
+
       toggle.addEventListener('click', function(e){
         const expanded = this.getAttribute('aria-expanded') === 'true';
-        this.setAttribute('aria-expanded', (!expanded).toString());
-        menu.classList.toggle('open');
+        if (expanded) closeMenu(); else openMenu();
       });
 
       // close menu when clicking outside
       document.addEventListener('click', function(e){
         if (!menu.classList.contains('open')) return;
         const isClickInside = menu.contains(e.target) || toggle.contains(e.target);
-        if (!isClickInside) {
-          menu.classList.remove('open');
-          toggle.setAttribute('aria-expanded', 'false');
-        }
+        if (!isClickInside) closeMenu();
       });
+
+      // close on escape
+      document.addEventListener('keydown', function(e){ if (e.key === 'Escape') closeMenu(); });
     })();
   </script>
 
