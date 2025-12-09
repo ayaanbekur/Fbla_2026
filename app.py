@@ -703,7 +703,8 @@ def admin_send_to_user(user_id):
     if not user:
         return redirect(url_for("admin_chat_users"))
     
-    content = request.form.get("message", "").strip()
+    # Accept either 'content' (used in templates) or 'message' (older name) from the form
+    content = (request.form.get("content") or request.form.get("message") or "").strip()
     if content:
         admin_id = 1  # Assuming admin user has id=1
         message = Message(sender_id=admin_id, receiver_id=user_id, content=content)
