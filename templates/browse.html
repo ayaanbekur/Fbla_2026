@@ -16,6 +16,18 @@
         <p>{{ item['description'] }}</p>
         <p class="location">📍 {{ item['location'] }}</p>
         <a href="{{ url_for('claim', item_id=item['id']) }}" class="cta-button small">Claim</a>
+
+        {% if session.get('admin') %}
+        <div class="admin-actions">
+          <form method="POST" action="{{ url_for('admin_mark_claimed', item_id=item['id']) }}" style="display:inline;">
+            <button type="submit" class="cta-button small admin">Mark Claimed</button>
+          </form>
+
+          <form method="POST" action="{{ url_for('admin_delete_browse', item_id=item['id']) }}" style="display:inline; margin-left:8px;">
+            <button type="submit" class="cta-button small danger">Delete</button>
+          </form>
+        </div>
+        {% endif %}
       </div>
     {% else %}
       <p>No items found yet.</p>
@@ -83,7 +95,7 @@ h1, h2, h3, .logo {
   font-size: 0.9rem;
   border-radius: 30px;
   background-color: #0A8754;
-  color: #BFD7EA;
+  color: #ffffff;
   text-decoration: none;
   transition: all 0.3s ease;
 }
@@ -92,6 +104,20 @@ h1, h2, h3, .logo {
   background-color: #004F2D;
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(0,140,164,0.5);
+}
+
+.admin-actions .cta-button.small.admin {
+  background-color: #0A8754;
+  color: #ffffff;
+}
+
+.admin-actions .cta-button.small.danger {
+  background-color: #D64545;
+  color: #ffffff;
+}
+
+.admin-actions .cta-button.small.danger:hover {
+  background-color: #9f2f2f;
 }
 
 @keyframes fadeIn {

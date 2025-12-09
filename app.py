@@ -602,6 +602,33 @@ def remove_item(item_id):
     return redirect(url_for("admin"))
 
 
+# Admin: delete item from browse view (POST)
+@app.route("/admin/delete_from_browse/<int:item_id>", methods=['POST'])
+def admin_delete_browse(item_id):
+    if not session.get("admin"):
+        return redirect(url_for("admin_login"))
+    conn = get_db()
+    conn.execute("DELETE FROM items WHERE id=?", (item_id,))
+    conn.commit()
+    conn.close()
+    session['admin_action_msg'] = 'Item deleted'
+    return redirect(url_for("browse"))
+
+
+# Admin: mark an item as claimed from browse (POST)
+@app.route("/admin/mark_claimed/<int:item_id>", methods=['POST'])
+def admin_mark_claimed(item_id):
+    if not session.get("admin"):
+        return redirect(url_for("admin_login"))
+    conn = get_db()
+    # set status to Claimed and set claimant to 'Admin'
+    conn.execute("UPDATE items SET status='Claimed', claimant=? WHERE id=?", ('Admin', item_id))
+    conn.commit()
+    conn.close()
+    session['admin_action_msg'] = 'Item marked Claimed'
+    return redirect(url_for("browse"))
+
+
 # Run
 if __name__ == "__main__":
     app.run(debug=True)
