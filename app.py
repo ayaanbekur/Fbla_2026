@@ -23,6 +23,25 @@ print(f"[STARTUP] ADMIN_PASSWORD loaded as: '{ADMIN_PASSWORD}'")
 app = Flask(__name__)
 app.secret_key = os.getenv("SECRET_KEY", "supersecretkey")
 
+app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv("DATABASE_URL")
+app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+
+db = SQLAlchemy(app)
+
+db = SQLAlchemy(app)
+
+class ChatMessage(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(50))
+    message = db.Column(db.Text)
+    timestamp = db.Column(db.DateTime)
+
+class Item(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    description = db.Column(db.String(200))
+    claimed = db.Column(db.Boolean, default=False)
+
+
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = "login"
@@ -60,6 +79,12 @@ def load_user(user_id):
 def index():
     return render_template("index.html")
  
+@app.route("/init-db")
+def init_db():
+    db.create_all()
+    return "database created"
+
+
 # Browse items
 @app.route("/browse")
 def browse():
