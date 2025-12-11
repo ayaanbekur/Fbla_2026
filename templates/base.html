@@ -12,6 +12,26 @@
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&family=Playfair+Display:wght@600&display=swap" rel="stylesheet">
 
   <style>
+    /* Christmas Lights Banner */
+    #lights-banner {
+      width: 100%;
+      height: 80px;
+      background: linear-gradient(180deg, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.4) 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      position: relative;
+      z-index: 999;
+    }
+
+    #lights-banner img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
     /* Fix base layout */
     html, body {
       margin: 0;
@@ -216,6 +236,11 @@
 </head>
 
 <body>
+  <!-- Christmas Lights Banner -->
+  <div id="lights-banner">
+    <img src="{{ url_for('static', filename='images/xlights.png') }}" alt="Christmas lights">
+  </div>
+
   <!-- Navbar -->
   <nav>
 
