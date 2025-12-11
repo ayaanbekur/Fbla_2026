@@ -2,28 +2,28 @@
 
 {% block content %}
 <div class="hero">
-    <h1 class="fade-in delay-0">Welcome to FCHS Lost & Found</h1>
+    <h1 class="fade-in delay-0">Welcome to <span class="highlight">FCHS Lost & Found</span></h1>
     <p class="fade-in delay-1">
         Never lose track of your belongings again. Our Lost & Found portal helps students and staff report, browse, 
-        and claim lost items efficiently.
+        and claim lost items efficiently and securely.
     </p>
     <p class="fade-in delay-2">
-        Browse through found items, report what you’ve lost, or manage claims securely via our admin panel.
+        Browse through found items, report what you've lost, or manage claims through our intuitive platform.
     </p>
-    <a href="{{ url_for('browse') }}" class="cta-button fade-in delay-3">Go to Lost & Found</a>
+    <a href="{{ url_for('browse') }}" class="cta-button fade-in delay-3">Browse Lost & Found</a>
 </div>
 
 <style>
 .hero {
-    max-width: 1000px;        /* keeps the card nicely centered on wide screens */
-    margin: 2rem auto;        /* center horizontally with vertical spacing */
+    max-width: 1100px;
+    margin: 3rem auto;
     text-align: center;
-    padding: 4.5rem 2rem;     /* vertical + horizontal padding */
-    background: #ffffff;      /* white card */
-    border-radius: 16px;
-    border: 1px solid rgba(0,0,0,0.04); /* subtle edge for definition */
-    box-shadow: 0 6px 18px rgba(0,0,0,0.08); /* soft shadow */
-    color: #000000;          /* black text */
+    padding: 5rem 2rem;
+    background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+    border-radius: 20px;
+    border: 1px solid rgba(200, 16, 46, 0.08);
+    box-shadow: 0 12px 32px rgba(0,0,0,0.08);
+    color: #2c3e50;
 }
 
 body {
@@ -31,70 +31,92 @@ body {
 }
 h1, h2, h3, .logo {
   font-family: 'Playfair Display', serif;
-  letter-spacing: 0.5px;
+  letter-spacing: -0.5px;
 }
 
-/* Title / paragraph colors inside the white card */
 .hero h1 {
-    font-size: 2.8rem;
-    margin-bottom: 0.75rem;
-    color: #C8102E;          /* red accent for title */
+    font-size: 3.5rem;
+    margin-bottom: 1.5rem;
+    color: #1a1a1a;
+    font-weight: 700;
+    line-height: 1.2;
+    letter-spacing: -1px;
+}
+
+.hero h1 .highlight {
+    background: linear-gradient(135deg, #C8102E, #0A8754);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
 }
 
 .hero p {
-    font-size: 1.05rem;
-    max-width: 760px;
-    margin: 0.75rem auto;
-    color: #333333;
-    line-height: 1.6;
+    font-size: 1.15rem;
+    max-width: 800px;
+    margin: 1rem auto;
+    color: #6c757d;
+    line-height: 1.8;
+    font-weight: 300;
 }
 
-/* Keep CTA button styling consistent (uses your stylesheet .cta-button) */
-/* But ensure it contrasts on white background */
+.hero p:first-of-type {
+    font-size: 1.2rem;
+    font-weight: 400;
+    color: #2c3e50;
+}
+
 .hero .cta-button {
-    background: #C8102E;
+    margin-top: 2.5rem;
+    background: linear-gradient(135deg, #C8102E, #8B0A23);
     color: #fff;
-    box-shadow: 0 6px 15px rgba(200,20,40,0.18);
+    box-shadow: 0 8px 20px rgba(200,16,46,0.25);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-weight: 600;
+    padding: 1rem 3rem;
 }
+
 .hero .cta-button:hover {
-    background: #000000;
-    color: #fff;
+    box-shadow: 0 12px 28px rgba(200,16,46,0.35);
+    transform: translateY(-4px);
 }
 
-.cta-button {
-    display: inline-block;
-    margin-top: 2rem;
-    padding: 0.8rem 2rem;
-    font-size: 1.1rem;
-    border-radius: 35px;
-    background-color: #0A8754;
-    color: #BFD7EA;
-    text-decoration: none;
-    font-weight: bold;
-    transition: all 0.3s ease;
-}
-
-.cta-button:hover {
-    background-color: #004F2D;
-    transform: translateY(-3px);
-    box-shadow: 0 6px 20px rgba(10,135,84,0.5);
-}
-
-/* Fade-in animations */
 .fade-in {
     opacity: 0;
     transform: translateY(20px);
-    animation: fadeInUp 1s forwards;
+    animation: fadeInUp 1s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
 }
 
-.fade-in.delay-0 { animation-delay: 0s; }
-.fade-in.delay-1 { animation-delay: 0.5s; }
-.fade-in.delay-2 { animation-delay: 1s; }
-.fade-in.delay-3 { animation-delay: 1.5s; }
+.fade-in.delay-0 { animation-delay: 0.1s; }
+.fade-in.delay-1 { animation-delay: 0.3s; }
+.fade-in.delay-2 { animation-delay: 0.5s; }
+.fade-in.delay-3 { animation-delay: 0.7s; }
 
 @keyframes fadeInUp {
-    0% { opacity: 0; transform: translateY(20px);}
-    100% { opacity: 1; transform: translateY(0);}
+    0% { 
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    100% { 
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Mobile */
+@media (max-width: 768px) {
+    .hero {
+        padding: 3rem 1.5rem;
+        margin: 1.5rem auto;
+    }
+    
+    .hero h1 {
+        font-size: 2.2rem;
+    }
+    
+    .hero p {
+        font-size: 1rem;
+    }
 }
 </style>
 {% endblock %}
