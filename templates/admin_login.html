@@ -7,9 +7,10 @@
   {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}
       {% for category, msg in messages %}
-        <div class="alert-message" style="padding: 1rem; border-radius: 8px; margin-bottom: 1rem; font-weight: 600; {% if 'danger' in category %}background: #f8d7da; color: #721c24; border: 2px solid #f5c2c7;{% else %}background: #d4edda; color: #155724; border: 2px solid #c3e6cb;{% endif %}">
+        <div class="alert-message" style="padding:1rem; border-radius:8px; margin-bottom:1rem; font-weight:600; {{ 'background:#f8d7da;color:#721c24;border:2px solid #f5c2c7;' if 'danger' in category else 'background:#d4edda;color:#155724;border:2px solid #c3e6cb;' }}">
           {{ msg }}
         </div>
+
       {% endfor %}
     {% endif %}
   {% endwith %}

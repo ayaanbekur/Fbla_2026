@@ -161,35 +161,9 @@
   </style>
 
   <script>
-    // Auto-scroll to bottom on load
+    // Auto-scroll to bottom
     const chatBox = document.getElementById('chat-box');
     chatBox.scrollTop = chatBox.scrollHeight;
-
-    // Auto-refresh chat every 1 second
-    function refreshChat() {
-        fetch(window.location.href, {
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest'
-            }
-        })
-        .then(response => response.text())
-        .then(html => {
-            const parser = new DOMParser();
-            const newDoc = parser.parseFromString(html, 'text/html');
-            const newChatBox = newDoc.querySelector('#chat-box');
-            const oldChatBox = document.querySelector('#chat-box');
-            
-            if (newChatBox && oldChatBox) {
-                oldChatBox.innerHTML = newChatBox.innerHTML;
-                // Auto-scroll to bottom to show latest messages
-                oldChatBox.scrollTop = oldChatBox.scrollHeight;
-            }
-        })
-        .catch(error => console.log('Auto-refresh error:', error));
-    }
-
-    // Start auto-refresh every 1 second (1000ms)
-    setInterval(refreshChat, 1000);
   </script>
 </div>
 {% endblock %}

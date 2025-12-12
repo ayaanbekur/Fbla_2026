@@ -67,40 +67,4 @@ h1, h2, h3, .logo {
     margin-top: 0.2rem;
 }
 </style>
-
-<script>
-// Auto-refresh chat every second
-function refreshChat() {
-    fetch(window.location.href, {
-        headers: {
-            'X-Requested-With': 'XMLHttpRequest'
-        }
-    })
-    .then(response => response.text())
-    .then(html => {
-        const parser = new DOMParser();
-        const newDoc = parser.parseFromString(html, 'text/html');
-        const newChatBox = newDoc.querySelector('#chat-box');
-        const oldChatBox = document.querySelector('#chat-box');
-        
-        if (newChatBox && oldChatBox) {
-            oldChatBox.innerHTML = newChatBox.innerHTML;
-            // Auto-scroll to bottom to show latest messages
-            oldChatBox.scrollTop = oldChatBox.scrollHeight;
-        }
-    })
-    .catch(error => console.log('Auto-refresh error:', error));
-}
-
-// Start auto-refresh every 1 second (1000ms)
-setInterval(refreshChat, 1000);
-
-// Initial scroll to bottom
-window.addEventListener('load', function() {
-    const chatBox = document.querySelector('#chat-box');
-    if (chatBox) {
-        chatBox.scrollTop = chatBox.scrollHeight;
-    }
-});
-</script>
 {% endblock %}
