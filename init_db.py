@@ -55,3 +55,17 @@ class Message(db.Model):
     receiver_id = db.Column(db.Integer, db.ForeignKey("user.id"))
     content = db.Column(db.Text, nullable=False)
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+
+
+class Item(db.Model):
+    __tablename__ = "items"
+    __table_args__ = {"extend_existing": True}  # <--- add this
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String, nullable=False)
+    description = db.Column(db.String)
+    location = db.Column(db.String)
+    status = db.Column(db.String, default="Found")
+    claimant = db.Column(db.String, nullable=True)
+    image = db.Column(db.String, nullable=True)
+    approved = db.Column(db.Boolean, default=False, nullable=False)  # new column

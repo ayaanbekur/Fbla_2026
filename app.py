@@ -26,8 +26,6 @@ app.secret_key = os.getenv("SECRET_KEY", "supersecretkey")
 app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv("DATABASE_URL")
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
-db = SQLAlchemy(app)
-
 class ChatMessage(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(50))
@@ -48,9 +46,6 @@ DATABASE = "lost_and_found.db"
 UPLOAD_FOLDER = "static/uploads"
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
-
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///site.db'
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db.init_app(app)
 
