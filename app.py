@@ -96,6 +96,9 @@ def inject_now():
     """Inject helper values into Jinja templates."""
     return {"now": datetime.now, "current_year": datetime.now().year}
 
+with app.app_context():
+    db.create_all()
+
 # Home
 @app.route("/")
 def index():
