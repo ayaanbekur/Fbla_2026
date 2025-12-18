@@ -3,21 +3,20 @@ from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
 
+# Initialize SQLAlchemy here, not in app.py
 db = SQLAlchemy()
 
 # --------------------------
 # USER MODEL
 # --------------------------
 class User(UserMixin, db.Model):
-    __tablename__ = "user"
-
+    __tablename__ = "users"
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=False)
     password_hash = db.Column(db.String(200), nullable=False)
     is_admin = db.Column(db.Boolean, default=False, nullable=False)
 
-    # relationships
     sent_messages = db.relationship("Message", foreign_keys="Message.sender_id", backref="sender_user", lazy=True)
     received_messages = db.relationship("Message", foreign_keys="Message.receiver_id", backref="receiver_user", lazy=True)
     items = db.relationship("Item", backref="owner", lazy=True)
@@ -32,9 +31,10 @@ class User(UserMixin, db.Model):
 
 
 # --------------------------
-# ITEM MODEL (Lost & Found)
+# ITEM MODEL
 # --------------------------
 class Item(db.Model):
+    __tablename__ = "item"
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
     description = db.Column(db.Text, nullable=False)
@@ -42,46 +42,54 @@ class Item(db.Model):
     status = db.Column(db.String(50), default='Found')
     approved = db.Column(db.Boolean, default=False)
     image_filename = db.Column(db.String(100))
-    owner_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    owner_id = db.Column(db.Integer, db.ForeignKey('users.id'))
     claimant = db.Column(db.String(100))
 
 
-
 # --------------------------
-# MESSAGE MODEL (Global/Admin chat)
+# MESSAGE MODEL
 # --------------------------
 class Message(db.Model):
     __tablename__ = "message"
-
     id = db.Column(db.Integer, primary_key=True)
-    sender_id = db.Column(db.Integer, db.ForeignKey("user.id"))
-    receiver_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=True)  # null = global chat
+    sender_id = db.Column(db.Integer, db.ForeignKey("users.id"))
+    receiver_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
     content = db.Column(db.Text, nullable=False)
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
 
 
 # --------------------------
-# AI CHAT MODEL (Per-user)
+# AI CHAT MODEL
 # --------------------------
 class AIChat(db.Model):
     __tablename__ = "ai_chat"
-
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey("user.id"))
-    sender = db.Column(db.String(10))  # user / ai
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"))
+    sender = db.Column(db.String(10))
     message = db.Column(db.Text)
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
 
 
 # --------------------------
-# REPORT MODEL (Admin approval)
+# REPORT MODEL
 # --------------------------
 class Report(db.Model):
     __tablename__ = "report"
-
     id = db.Column(db.Integer, primary_key=True)
     item_id = db.Column(db.Integer, db.ForeignKey("item.id"))
-    reporter_id = db.Column(db.Integer, db.ForeignKey("user.id"))
+    reporter_id = db.Column(db.Integer, db.ForeignKey("users.id"))
     reason = db.Column(db.Text, nullable=False)
-    status = db.Column(db.String(20), default="pending")  # pending / approved / rejected
+    status = db.Column(db.String(20), default="pending")
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+
+
+# --------------------------
+# CLAIM REQUEST MODEL
+# --------------------------
+class ClaimRequest(db.Model):
+    __tablename__ = "claim_request"
+    id = db.Column(db.Integer, primary_key=True)
+    item_id = db.Column(db.Integer, db.ForeignKey("item.id"))
+    claimant_name = db.Column(db.String(100))
+    status = db.Column(db.String(20), default="pending")
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)

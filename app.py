@@ -1,53 +1,101 @@
+# Standard library
 import os
-from dotenv import load_dotenv
-load_dotenv()
-
 from functools import wraps
-from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
-from flask_login import LoginManager, login_user, logout_user, current_user, login_required
-from werkzeug.utils import secure_filename
-from init_db import db, User, Item, Message, AIChat, Report
+from datetime import datetime
+
+# Third-party libraries
 import requests
-from openai import OpenAI
-from init_db import db, User, Item, Message, AIChat, Report
-from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
+from dotenv import load_dotenv
+from flask import (
+    Flask, render_template, request, redirect, url_for, session,
+    flash, jsonify
+)
+from flask_login import (
+    LoginManager, login_user, logout_user, current_user, login_required
+)
+from werkzeug.utils import secure_filename
 
-from init_db import db, User, Item, Message
+# Local modules / database models
+from init_db import db, User, Item, Message, AIChat, Report, ClaimRequest
 
+# Load environment variables
+load_dotenv()
 ADMIN_USERNAME = os.getenv("ADMIN_USERNAME", "admin")
 ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "password")
+AI_ENDPOINT = os.getenv("AI_ENDPOINT")
+AI_MODEL = os.getenv("AI_MODEL", "openai/gpt-oss-20b:groq")
+AI_KEY = os.getenv("AI_API_KEY")
 
 print(f"[STARTUP] ADMIN_USERNAME loaded as: '{ADMIN_USERNAME}'")
 print(f"[STARTUP] ADMIN_PASSWORD loaded as: '{ADMIN_PASSWORD}'")
 
+# Flask app setup
 app = Flask(__name__)
 app.secret_key = os.getenv("SECRET_KEY", "supersecretkey")
 
+# Flask-Login
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = "login"
 
+# Uploads
 UPLOAD_FOLDER = "static/uploads"
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 
-app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///site.db')
+# Database setup
+db_url = os.environ.get('DATABASE_URL', 'sqlite:///site.db')
+if db_url.startswith("postgresql://"):
+    db_url += "?sslmode=require"
+app.config['SQLALCHEMY_DATABASE_URI'] = db_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-
 db.init_app(app)
 
-@app.context_processor
-def inject_now():
-    """Inject helper functions/values into Jinja templates."""
-    from datetime import datetime
-    return {"now": datetime.now, "current_year": datetime.now().year}
- 
+# -------------------
+# Decorators
+# -------------------
+
+def admin_required(f):
+    """Decorator to ensure user is logged in and is admin."""
+    @wraps(f)
+    def wrapper(*args, **kwargs):
+        if not current_user.is_authenticated or not getattr(current_user, 'is_admin', False):
+            return redirect(url_for("admin_login"))
+        return f(*args, **kwargs)
+    return wrapper
+
+# -------------------
+# Flask-Login user loader
+# -------------------
+
+# -------------------
+# Helper functions
+# -------------------
+
+def get_or_create_admin():
+    """Return the admin user, creating one if it doesn't exist."""
+    admin = User.query.filter_by(is_admin=True).first()
+    if not admin:
+        admin = User(name="Admin", email="admin@lost-found.local", is_admin=True)
+        admin.set_password(ADMIN_PASSWORD)
+        db.session.add(admin)
+        db.session.commit()
+    return admin
+
+
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
 
+# -------------------
+# Jinja template context
+# -------------------
 
-  
+@app.context_processor
+def inject_now():
+    """Inject helper values into Jinja templates."""
+    return {"now": datetime.now, "current_year": datetime.now().year}
+
 # Home
 @app.route("/")
 def index():
@@ -65,14 +113,6 @@ def browse():
 @login_required
 def ai_chat_page():
     return render_template("ai_chat.html")
-
-#IMPORTANT -------------------------------------------------------------------------------------------------------------------
-# AI configuration: put `AI_API_KEY`, `AI_ENDPOINT`, and optional `AI_MODEL` in your `.env`
-# `AI_ENDPOINT` should be the full URL to the provider's chat/completions endpoint (e.g. https://api.your-provider.com/v1/chat/completions)
-AI_ENDPOINT = os.getenv("AI_ENDPOINT")
-AI_MODEL = os.getenv("AI_MODEL", "openai/gpt-oss-20b:groq")
-AI_KEY = os.getenv("AI_API_KEY")
-
 
 @app.route("/ai_chat", methods=["POST"])
 @login_required
@@ -247,6 +287,7 @@ def logout():
     return redirect(url_for("login"))
 
 @app.route("/admin_login", methods=["GET", "POST"])
+@admin_required
 def admin_login():
     if request.method == "POST":
         email = request.form.get("email", "").strip()
@@ -301,6 +342,7 @@ def global_chat():
  
 # Chat with admin
 @app.route("/chat/admin", methods=["GET", "POST"])
+@admin_required
 @login_required
 def admin_chat():
     # Check if current user is logged in admin (session-based)
@@ -309,16 +351,8 @@ def admin_chat():
         return admin_chat_manage()
     
     # Regular user chat with admin
-    admin = User.query.filter_by(is_admin=True).first()
-    if not admin:
-        # Create default admin if none exists
-        admin = User(name="Admin", email="admin@lost-found.local", is_admin=True)
-        admin.set_password(ADMIN_PASSWORD)
-        db.session.add(admin)
-        db.session.commit()
-
+    admin = get_or_create_admin()
     admin_id = admin.id
-
     if request.method == "POST":
         content = request.form["content"]
         msg = Message(sender_id=current_user.id, receiver_id=admin_id, content=content)
@@ -355,15 +389,9 @@ def admin_chat():
 
 def admin_chat_manage():
     """Admin view of all user conversations with admin"""
-    admin = User.query.filter_by(is_admin=True).first()
-    if not admin:
-        admin = User(name="Admin", email="admin@lost-found.local", is_admin=True)
-        admin.set_password(ADMIN_PASSWORD)
-        db.session.add(admin)
-        db.session.commit()
-    
-    admin = User.query.filter_by(is_admin=True).first()
-    admin_id = admin.id if admin else None
+    admin = get_or_create_admin()
+    admin_id = admin.id
+
 
     
     # Get all conversations (unique users who messaged admin)
@@ -399,18 +427,12 @@ def admin_chat_manage():
 
 # Admin view specific user conversation
 @app.route("/admin/chat/<int:user_id>", methods=["GET", "POST"])
+@admin_required
 def admin_view_chat(user_id):
-    if not session.get("admin"):
-        return redirect(url_for("admin_login"))
     
-    admin = User.query.filter_by(is_admin=True).first()
-    if not admin:
-        admin = User(name="Admin", email="admin@lost-found.local", is_admin=True)
-        admin.set_password(ADMIN_PASSWORD)
-        db.session.add(admin)
-        db.session.commit()
-    
+    admin = get_or_create_admin()
     admin_id = admin.id
+
     user = User.query.get(user_id)
     
     if not user:
@@ -466,26 +488,21 @@ def report():
 
     return render_template("report.html")
 
-def admin_required(f):
-    @wraps(f)
-    def wrapper(*args, **kwargs):
-        if not current_user.is_authenticated or not current_user.is_admin:
-            return redirect(url_for("login"))
-        return f(*args, **kwargs)
-    return wrapper
-
 # Claim item
 @app.route("/claim/<int:item_id>", methods=["GET", "POST"])
 def claim(item_id):
-    
+    item = Item.query.get(item_id)
+    if not item:
+        flash("Item not found", "danger")
+        return redirect(url_for("browse"))
     return render_template("claim.html", item=item)
+
 
 # Admin dashboard
 # Admin dashboard
 @app.route("/admin", methods=["GET", "POST"])
+@admin_required
 def admin():
-    if not session.get("admin"):
-        return redirect(url_for("admin_login"))
 
     # Handle adding a new item from admin
     if request.method == "POST" and "add_item" in request.form:
@@ -507,6 +524,7 @@ def admin():
 
 # Logout
 @app.route('/admin/logout', methods=['POST', 'GET'])
+@admin_required
 def admin_logout():
     session.pop('admin', None)
     return redirect(url_for('index'))
@@ -515,9 +533,8 @@ def admin_logout():
 # Delete item (POST)
 # Admin: delete item
 @app.route("/admin/delete/<int:item_id>", methods=['POST'])
+@admin_required
 def admin_delete(item_id):
-    if not session.get("admin"):
-        return redirect(url_for("admin_login"))
     item = Item.query.get(item_id)
     if item:
         db.session.delete(item)
@@ -528,9 +545,8 @@ def admin_delete(item_id):
 
 # Admin: approve item
 @app.route("/admin/approve/<int:item_id>", methods=['POST'])
+@admin_required
 def approve(item_id):
-    if not session.get("admin"):
-        return redirect(url_for("admin_login"))
     item = Item.query.get(item_id)
     if item:
         item.approved = True
@@ -540,9 +556,8 @@ def approve(item_id):
 
 # Admin: reject item
 @app.route("/admin/reject/<int:item_id>", methods=['POST'])
+@admin_required
 def reject(item_id):
-    if not session.get("admin"):
-        return redirect(url_for("admin_login"))
     item = Item.query.get(item_id)
     if item:
         db.session.delete(item)
@@ -553,9 +568,8 @@ def reject(item_id):
 
 # Admin: clear claim
 @app.route("/admin/clear_claim/<int:item_id>", methods=['POST'])
+@admin_required
 def clear_claim(item_id):
-    if not session.get("admin"):
-        return redirect(url_for("admin_login"))
     item = Item.query.get(item_id)
     if item:
         item.status = 'Found'
@@ -567,9 +581,8 @@ def clear_claim(item_id):
 
 # Admin: remove item
 @app.route("/admin/remove/<int:item_id>", methods=['POST'])
+@admin_required
 def remove_item(item_id):
-    if not session.get("admin"):
-        return redirect(url_for("admin_login"))
     item = Item.query.get(item_id)
     if item:
         item.status = 'Removed'
@@ -581,9 +594,8 @@ def remove_item(item_id):
 
 # Admin: delete item from browse view
 @app.route("/admin/delete_from_browse/<int:item_id>", methods=['POST'])
+@admin_required
 def admin_delete_browse(item_id):
-    if not session.get("admin"):
-        return redirect(url_for("admin_login"))
     item = Item.query.get(item_id)
     if item:
         db.session.delete(item)
@@ -594,9 +606,8 @@ def admin_delete_browse(item_id):
 
 # Admin: mark item as claimed
 @app.route("/admin/mark_claimed/<int:item_id>", methods=['POST'])
+@admin_required
 def admin_mark_claimed(item_id):
-    if not session.get("admin"):
-        return redirect(url_for("admin_login"))
     item = Item.query.get(item_id)
     if item:
         item.status = 'Claimed'
@@ -608,10 +619,8 @@ def admin_mark_claimed(item_id):
 
 # Admin: approve claim request
 @app.route("/admin/approve_claim/<int:claim_id>", methods=['POST'])
+@admin_required
 def admin_approve_claim(claim_id):
-    from init_db import ClaimRequest
-    if not session.get("admin"):
-        return redirect(url_for("admin_login"))
     claim = ClaimRequest.query.get(claim_id)
     if claim:
         claim.status = 'approved'
@@ -622,10 +631,8 @@ def admin_approve_claim(claim_id):
 
 # Admin: reject claim request
 @app.route("/admin/reject_claim/<int:claim_id>", methods=['POST'])
+@admin_required
 def admin_reject_claim(claim_id):
-    from init_db import ClaimRequest
-    if not session.get("admin"):
-        return redirect(url_for("admin_login"))
     claim = ClaimRequest.query.get(claim_id)
     if claim:
         claim.status = 'rejected'
@@ -636,9 +643,8 @@ def admin_reject_claim(claim_id):
 
 # Admin: get list of users to chat with
 @app.route("/admin/chat_users", methods=['GET'])
+@admin_required
 def admin_chat_users():
-    if not session.get("admin"):
-        return redirect(url_for("admin_login"))
     
     users = User.query.all()
     return render_template("admin_chat_users.html", users=users)
@@ -646,16 +652,17 @@ def admin_chat_users():
 
 # Admin: start chat with a specific user
 @app.route("/admin/chat_with/<int:user_id>", methods=['GET'])
+@admin_required
 def admin_chat_with(user_id):
-    if not session.get("admin"):
-        return redirect(url_for("admin_login"))
     
     user = User.query.get(user_id)
     if not user:
         return redirect(url_for("admin_chat_users"))
     
     # Fetch chat history
-    admin_id = 1  # Assuming admin user has id=1; adjust if needed
+    admin = get_or_create_admin()
+    admin_id = admin.id
+
     messages = db.session.query(Message).filter(
         ((Message.sender_id == admin_id) & (Message.receiver_id == user_id)) |
         ((Message.sender_id == user_id) & (Message.receiver_id == admin_id))
@@ -666,9 +673,8 @@ def admin_chat_with(user_id):
 
 # Admin: send message to user
 @app.route("/admin/send_to_user/<int:user_id>", methods=['POST'])
+@admin_required
 def admin_send_to_user(user_id):
-    if not session.get("admin"):
-        return redirect(url_for("admin_login"))
     
     user = User.query.get(user_id)
     if not user:
@@ -677,9 +683,10 @@ def admin_send_to_user(user_id):
     # Accept either 'content' (used in templates) or 'message' (older name) from the form
     content = (request.form.get("content") or request.form.get("message") or "").strip()
     if content:
-        admin_id = 1  # Assuming admin user has id=1
-        message = Message(sender_id=admin_id, receiver_id=user_id, content=content)
-        db.session.add(message)
+        admin = get_or_create_admin()
+        admin_id = admin.id
+        msg = Message(sender_id=admin_id, receiver_id=user_id, content=content)  # ✅ create message object
+        db.session.add(msg)  # ✅ add the correct object
         db.session.commit()
     
     return redirect(url_for("admin_chat_with", user_id=user_id))
