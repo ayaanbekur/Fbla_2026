@@ -73,14 +73,24 @@ def admin_required(f):
 # -------------------
 
 def get_or_create_admin():
-    """Return the admin user, creating one if it doesn't exist."""
-    admin = User.query.filter_by(is_admin=True).first()
+    admin = User.query.filter_by(email=ADMIN_USERNAME).first()
+
     if not admin:
-        admin = User(name="Admin", email="admin@lost-found.local", is_admin=True)
+        admin = User(
+            name="Admin",
+            email=ADMIN_USERNAME,
+            is_admin=True
+        )
         admin.set_password(ADMIN_PASSWORD)
         db.session.add(admin)
-        db.session.commit()
+    else:
+        # FORCE admin privileges
+        admin.is_admin = True
+        admin.set_password(ADMIN_PASSWORD)
+
+    db.session.commit()
     return admin
+
 
 
 @login_manager.user_loader
