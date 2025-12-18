@@ -5,12 +5,12 @@ load_dotenv()
 from functools import wraps
 from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
 from flask_login import LoginManager, login_user, logout_user, current_user, login_required
-from flask_sqlalchemy import SQLAlchemy
 from werkzeug.utils import secure_filename
-from werkzeug.security import generate_password_hash, check_password_hash
-import sqlite3
+from init_db import db, User, Item, Message, AIChat, Report
 import requests
 from openai import OpenAI
+from init_db import db, User, Item, Message, AIChat, Report
+from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
 
 from init_db import db, User, Item, Message
 
@@ -27,21 +27,14 @@ login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = "login"
 
-DATABASE = "lost_and_found.db"
 UPLOAD_FOLDER = "static/uploads"
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///site.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///site.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db.init_app(app)
-
-def get_db():
-    conn = sqlite3.connect(DATABASE)
-    conn.row_factory = sqlite3.Row
-    return conn
-
 
 @app.context_processor
 def inject_now():
@@ -51,8 +44,8 @@ def inject_now():
  
 @login_manager.user_loader
 def load_user(user_id):
-    with app.app_context():
-        return User.query.get(int(user_id))
+    return User.query.get(int(user_id))
+
 
   
 # Home
@@ -63,10 +56,9 @@ def index():
 # Browse items
 @app.route("/browse")
 def browse():
-    conn = get_db()
-    items = conn.execute("SELECT * FROM items WHERE approved=1").fetchall()
-    conn.close()
+    items = Item.query.filter_by(approved=True).all()
     return render_template("browse.html", items=items)
+
 
 # AI Chat page (display)
 @app.route("/chat/ai")
@@ -85,11 +77,6 @@ AI_KEY = os.getenv("AI_API_KEY")
 @app.route("/ai_chat", methods=["POST"])
 @login_required
 def ai_chat():
-    """
-    frontend sends: {"message": "..."}
-    we forward to configured AI endpoint and return: {"reply": "..."}
-    Alex has access to all approved items in the browse database so he can help users find things.
-    """
     data = request.get_json() or {}
     user_msg = data.get("message", "").strip()
 
@@ -100,16 +87,16 @@ def ai_chat():
         return jsonify({"error": "AI_ENDPOINT not configured"}), 500
 
     # Fetch approved items so Alex can reference them
-    conn = get_db()
-    items = conn.execute("SELECT id, name, location, description, status FROM items WHERE approved=1").fetchall()
-    conn.close()
+    items = Item.query.filter_by(approved=True).all()
 
     # Build item listing for the system prompt
-    items_list = ""
     if items:
         items_list = "Here are the currently available items that users can browse:\n\n"
         for item in items:
-            items_list += f"- **{item['name']}** (ID: {item['id']}): {item['description']}\n  Location: {item['location']}, Status: {item['status']}\n"
+            items_list += f"- **{item.name}** (ID: {item.id}): {item.description}\n"
+            if item.location:
+                items_list += f"  Location: {item.location}\n"
+            items_list += f"  Status: {item.status}\n\n"
     else:
         items_list = "There are currently no approved items available."
 
@@ -181,6 +168,19 @@ Use your creativity to make responses clear, helpful, and friendly!"""
         if not reply:
             reply = data.get("reply") or data.get("output") or data.get("response")
 
+        db.session.add(AIChat(
+        user_id=current_user.id,
+        sender="user",
+        message=user_msg
+        ))
+        db.session.add(AIChat(
+            user_id=current_user.id,
+            sender="ai",
+            message=reply
+        ))
+        db.session.commit()
+
+
     if not reply:
         try:
             reply = str(data)
@@ -246,33 +246,25 @@ def logout():
     flash("Logged out successfully!", "info")
     return redirect(url_for("login"))
 
-# Admin Login
 @app.route("/admin_login", methods=["GET", "POST"])
 def admin_login():
     if request.method == "POST":
-        username = request.form.get("username", "").strip()
+        email = request.form.get("email", "").strip()
         password = request.form.get("password", "").strip()
-        
-        print(f"[DEBUG] Login attempt:")
-        print(f"  Submitted username: '{username}'")
-        print(f"  Submitted password: '{password}'")
-        print(f"  Expected username: '{ADMIN_USERNAME}'")
-        print(f"  Expected password: '{ADMIN_PASSWORD}'")
-        print(f"  Username match: {username == ADMIN_USERNAME}")
-        print(f"  Password match: {password == ADMIN_PASSWORD}")
-        
-        if username == ADMIN_USERNAME and password == ADMIN_PASSWORD:
+
+        user = User.query.filter_by(email=email, is_admin=True).first()
+        if user and user.check_password(password):
+            login_user(user)
             session["admin"] = True
             session["show_admin_popup"] = True
             flash("Welcome to Admin Dashboard!", "success")
-            print("[DEBUG] Login successful, redirecting to admin")
             return redirect(url_for("admin"))
-        else:
-            print("[DEBUG] Login failed - credentials don't match")
-            flash("Invalid admin credentials.", "danger")
-            return redirect(url_for("admin_login"))
-    
+
+        flash("Invalid admin credentials.", "danger")
+        return redirect(url_for("admin_login"))
+
     return render_template("admin_login.html")
+
   
 # Global chatroom (for navbar link)
 # Global chat (everyone)
@@ -370,7 +362,9 @@ def admin_chat_manage():
         db.session.add(admin)
         db.session.commit()
     
-    admin_id = admin.id
+    admin = User.query.filter_by(is_admin=True).first()
+    admin_id = admin.id if admin else None
+
     
     # Get all conversations (unique users who messaged admin)
     conversations = Message.query.filter(
@@ -454,76 +448,58 @@ def admin_view_chat(user_id):
 
 # Report lost item
 @app.route("/report", methods=["GET", "POST"])
+@login_required
 def report():
-    success_msg = None
     if request.method == "POST":
-        name = request.form['name']
-        location = request.form.get('location', '')
-        description = request.form['description']
-        status = request.form['status']
-        image = request.files.get('image')
-
-        filename = None
-        if image and image.filename != '':
-            filename = secure_filename(image.filename)
-            image.save(os.path.join('static/uploads', filename))
-
-        conn = get_db()
-        conn.execute(
-            "INSERT INTO items (name, location, description, image, status) VALUES (?, ?, ?, ?, ?)",
-            (name, location, description, filename, status)
-        ) 
-        conn.commit()
-        conn.close()
-
-        success_msg = "Item reported successfully!"
-
-        return render_template("report.html", success_msg=success_msg)
+        item = Item(
+            name=request.form["name"],
+            description=request.form["description"],
+            location=request.form.get("location"),
+            status=request.form["status"],
+            owner_id=current_user.id,
+            approved=False
+        )
+        db.session.add(item)
+        db.session.commit()
+        flash("Item reported. Awaiting admin approval.", "success")
+        return redirect(url_for("browse"))
 
     return render_template("report.html")
+
+def admin_required(f):
+    @wraps(f)
+    def wrapper(*args, **kwargs):
+        if not current_user.is_authenticated or not current_user.is_admin:
+            return redirect(url_for("login"))
+        return f(*args, **kwargs)
+    return wrapper
 
 # Claim item
 @app.route("/claim/<int:item_id>", methods=["GET", "POST"])
 def claim(item_id):
-    conn = get_db()
-    item = conn.execute("SELECT * FROM items WHERE id=?", (item_id,)).fetchone()
-    if request.method == "POST":
-        claimant = request.form["claimant"]
-        conn.execute("UPDATE items SET status='Claimed', claimant=? WHERE id=?", (claimant, item_id))
-        conn.commit()
-        conn.close()
-        return redirect(url_for("browse")) 
-    conn.close()
+    
     return render_template("claim.html", item=item)
 
+# Admin dashboard
 # Admin dashboard
 @app.route("/admin", methods=["GET", "POST"])
 def admin():
     if not session.get("admin"):
         return redirect(url_for("admin_login"))
 
-    conn = get_db()
-
     # Handle adding a new item from admin
-    if request.method == "POST":
-        if "add_item" in request.form:
-            name = request.form["name"]
-            description = request.form["description"]
-            location = request.form.get("location", "")
-            conn.execute(
-                "INSERT INTO items (name, description, location, status) VALUES (?, ?, ?, 'Found')",
-                (name, description, location)
-            )
-            conn.commit()
-     
-    # Get all items
-    items = conn.execute("SELECT * FROM items").fetchall()
-    conn.close()
-  
-    # one-time admin login popup flag
-    show_popup = session.pop("show_admin_popup", False)
+    if request.method == "POST" and "add_item" in request.form:
+        name = request.form["name"]
+        description = request.form["description"]
+        location = request.form.get("location", "")
+        item = Item(name=name, description=description, location=location, status='Found', approved=True)
+        db.session.add(item)
+        db.session.commit()
+        session['admin_action_msg'] = 'Item added'
 
-    # one-time admin action message
+    items = Item.query.all()
+
+    show_popup = session.pop("show_admin_popup", False)
     action_msg = session.pop('admin_action_msg', None)
 
     return render_template("admin.html", items=items, show_admin_login_popup=show_popup, admin_action_msg=action_msg)
@@ -537,129 +513,124 @@ def admin_logout():
 
 
 # Delete item (POST)
+# Admin: delete item
 @app.route("/admin/delete/<int:item_id>", methods=['POST'])
 def admin_delete(item_id):
     if not session.get("admin"):
-        return redirect(url_for("admin_login")) 
-    conn = get_db()
-    conn.execute("DELETE FROM items WHERE id=?", (item_id,))
-    conn.commit()
-    conn.close()
-    session['admin_action_msg'] = 'Item deleted'
+        return redirect(url_for("admin_login"))
+    item = Item.query.get(item_id)
+    if item:
+        db.session.delete(item)
+        db.session.commit()
+        session['admin_action_msg'] = 'Item deleted'
     return redirect(url_for("admin"))
 
 
-# Approve item (sets approved=1) (POST)
+# Admin: approve item
 @app.route("/admin/approve/<int:item_id>", methods=['POST'])
 def approve(item_id):
     if not session.get("admin"):
         return redirect(url_for("admin_login"))
-    conn = get_db()
-    conn.execute("UPDATE items SET approved=1 WHERE id=?", (item_id,))
-    conn.commit()
-    conn.close()
+    item = Item.query.get(item_id)
+    if item:
+        item.approved = True
+        db.session.commit()
     return redirect(url_for("admin"))
 
 
-# Reject item (delete) (POST)
+# Admin: reject item
 @app.route("/admin/reject/<int:item_id>", methods=['POST'])
 def reject(item_id):
     if not session.get("admin"):
         return redirect(url_for("admin_login"))
-    conn = get_db()
-    conn.execute("DELETE FROM items WHERE id=?", (item_id,))
-    conn.commit()
-    conn.close()
-    session['admin_action_msg'] = 'Item rejected and removed'
+    item = Item.query.get(item_id)
+    if item:
+        db.session.delete(item)
+        db.session.commit()
+        session['admin_action_msg'] = 'Item rejected and removed'
     return redirect(url_for("admin"))
 
 
-# Clear claim (set status back and remove claimant) (POST)
+# Admin: clear claim
 @app.route("/admin/clear_claim/<int:item_id>", methods=['POST'])
 def clear_claim(item_id):
     if not session.get("admin"):
         return redirect(url_for("admin_login"))
-    conn = get_db()
-    # set status back to Found (admin-added) or Lost depending on previous data; default to 'Found'
-    conn.execute("UPDATE items SET status='Found', claimant=NULL WHERE id=?", (item_id,))
-    conn.commit()
-    conn.close()
-    session['admin_action_msg'] = 'Claim cleared'
+    item = Item.query.get(item_id)
+    if item:
+        item.status = 'Found'
+        item.claimant = None
+        db.session.commit()
+        session['admin_action_msg'] = 'Claim cleared'
     return redirect(url_for("admin"))
 
 
-
-# Mark item as removed (POST)
+# Admin: remove item
 @app.route("/admin/remove/<int:item_id>", methods=['POST'])
 def remove_item(item_id):
     if not session.get("admin"):
         return redirect(url_for("admin_login"))
-    conn = get_db()
-    conn.execute("UPDATE items SET status='Removed', claimant=NULL WHERE id=?", (item_id,))
-    conn.commit()
-    conn.close()
-    session['admin_action_msg'] = 'Item marked Removed'
+    item = Item.query.get(item_id)
+    if item:
+        item.status = 'Removed'
+        item.claimant = None
+        db.session.commit()
+        session['admin_action_msg'] = 'Item marked Removed'
     return redirect(url_for("admin"))
 
 
-# Admin: delete item from browse view (POST)
+# Admin: delete item from browse view
 @app.route("/admin/delete_from_browse/<int:item_id>", methods=['POST'])
 def admin_delete_browse(item_id):
     if not session.get("admin"):
         return redirect(url_for("admin_login"))
-    conn = get_db()
-    conn.execute("DELETE FROM items WHERE id=?", (item_id,))
-    conn.commit()
-    conn.close()
-    session['admin_action_msg'] = 'Item deleted'
+    item = Item.query.get(item_id)
+    if item:
+        db.session.delete(item)
+        db.session.commit()
+        session['admin_action_msg'] = 'Item deleted'
     return redirect(url_for("browse"))
 
 
-# Admin: mark an item as claimed from browse (POST)
+# Admin: mark item as claimed
 @app.route("/admin/mark_claimed/<int:item_id>", methods=['POST'])
 def admin_mark_claimed(item_id):
     if not session.get("admin"):
         return redirect(url_for("admin_login"))
-    conn = get_db()
-    # set status to Claimed and set claimant to 'Admin'
-    conn.execute("UPDATE items SET status='Claimed', claimant=? WHERE id=?", ('Admin', item_id))
-    conn.commit()
-    conn.close()
-    session['admin_action_msg'] = 'Item marked Claimed'
+    item = Item.query.get(item_id)
+    if item:
+        item.status = 'Claimed'
+        item.claimant = 'Admin'
+        db.session.commit()
+        session['admin_action_msg'] = 'Item marked Claimed'
     return redirect(url_for("browse"))
 
 
-# Admin: approve a claim request (POST)
+# Admin: approve claim request
 @app.route("/admin/approve_claim/<int:claim_id>", methods=['POST'])
 def admin_approve_claim(claim_id):
     from init_db import ClaimRequest
     if not session.get("admin"):
         return redirect(url_for("admin_login"))
-    
-    claim = db.session.query(ClaimRequest).get(claim_id)
-    if not claim:
-        return redirect(url_for("admin"))
-    
-    claim.status = 'approved'
-    db.session.commit()
-    session['admin_action_msg'] = f'Claim request from {claim.claimant_name} approved'
+    claim = ClaimRequest.query.get(claim_id)
+    if claim:
+        claim.status = 'approved'
+        db.session.commit()
+        session['admin_action_msg'] = f'Claim request from {claim.claimant_name} approved'
     return redirect(url_for("admin"))
 
 
-# Admin: reject a claim request (POST)
+# Admin: reject claim request
 @app.route("/admin/reject_claim/<int:claim_id>", methods=['POST'])
 def admin_reject_claim(claim_id):
     from init_db import ClaimRequest
     if not session.get("admin"):
         return redirect(url_for("admin_login"))
-    
-    claim = db.session.query(ClaimRequest).get(claim_id)
-    if not claim:
-        return redirect(url_for("admin"))
-    
-    claim.status = 'rejected'
-    db.session.commit()
-    session['admin_action_msg'] = f'Claim request from {claim.claimant_name} rejected'
+    claim = ClaimRequest.query.get(claim_id)
+    if claim:
+        claim.status = 'rejected'
+        db.session.commit()
+        session['admin_action_msg'] = f'Claim request from {claim.claimant_name} rejected'
     return redirect(url_for("admin"))
 
 
