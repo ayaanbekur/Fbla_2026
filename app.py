@@ -98,6 +98,7 @@ def inject_now():
 
 with app.app_context():
     db.create_all()
+    get_or_create_admin()
 
 # Home
 @app.route("/")
