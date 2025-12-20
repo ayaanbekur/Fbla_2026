@@ -2,6 +2,7 @@
 import os
 from functools import wraps
 from datetime import datetime
+import json
 
 # Third-party libraries
 import requests
@@ -140,10 +141,9 @@ def ai_chat():
     if not AI_ENDPOINT:
         return jsonify({"error": "AI_ENDPOINT not configured"}), 500
 
-    # Fetch approved items so Alex can reference them
+    # Fetch approved items
     items = Item.query.filter_by(approved=True).all()
 
-    # Build item listing for the system prompt
     if items:
         items_list = "Here are the currently available items that users can browse:\n\n"
         for item in items:
@@ -154,20 +154,28 @@ def ai_chat():
     else:
         items_list = "There are currently no approved items available."
 
-    system_prompt = f"""You are Alex, a friendly AI assistant for a Lost & Found service. Your job is to help users find items they're looking for.
+    system_prompt = f"""
+You are Alex, a friendly AI assistant for a Lost & Found service.
 
 {items_list}
 
-When users ask about items, reference what's available or help them report a lost item. Be helpful, concise, and warm.
+You may use **bold**, *italics*, emojis, bullet points, spacing, and headers.
 
-**FORMATTING FREEDOM:** You can format your replies however you want using:
-- **Bold** and *italics* for emphasis
-- Emojis 🎉 📦 🔍 ❓ 💡 to make responses more engaging
-- Bullet points and numbered lists for clarity
-- Line breaks and spacing for readability
-- Headers and sections to organize information
+If the user says they lost something, enter LOST_ITEM_MODE.
 
-Use your creativity to make responses clear, helpful, and friendly!"""
+In LOST_ITEM_MODE:
+- Ask for item name, description, and last seen location
+- When ready, respond ONLY with JSON:
+
+{{
+  "action": "create_lost_item",
+  "name": "",
+  "description": "",
+  "location": ""
+}}
+
+No extra text outside JSON.
+"""
 
     payload = {
         "model": AI_MODEL,
@@ -183,70 +191,76 @@ Use your creativity to make responses clear, helpful, and friendly!"""
 
     try:
         r = requests.post(AI_ENDPOINT, json=payload, headers=headers, timeout=30)
-    except Exception as e:
-        print(f"[AI DEBUG] Request to {AI_ENDPOINT} failed: {e}")
-        return jsonify({"error": "AI request failed", "detail": str(e)}), 502
-
-    # At this point we have a response object `r` (may be non-2xx)
-    try:
         r.raise_for_status()
-    except Exception as he:
-        # Print response body for debugging
-        resp_text = None
-        try:
-            resp_text = r.text
-        except Exception:
-            resp_text = '<unreadable body>'
-        print(f"[AI DEBUG] Provider returned HTTP {r.status_code}: {resp_text}")
-        return jsonify({"error": "AI provider error", "status_code": r.status_code, "detail": resp_text}), 502
-
-    # Try to parse JSON
-    try:
         data = r.json()
-    except Exception as je:
-        print(f"[AI DEBUG] Failed to parse JSON from provider response: {je}\nRaw body: {r.text}")
-        return jsonify({"error": "AI response not JSON", "detail": r.text}), 502
+    except Exception as e:
+        print("[AI ERROR]", e)
+        return jsonify({"error": "AI failed"}), 502
 
-    # Parse common response shapes (OpenAI-like and HF router compatible)
-    reply = None
+    # ---- Extract reply safely ----
+    reply = ""
+
     if isinstance(data, dict):
-        choices = data.get("choices") or []
-        if choices and isinstance(choices, list):
-            first = choices[0]
-            if isinstance(first, dict):
-                msg = first.get("message")
-                if isinstance(msg, dict) and msg.get("content"):
-                    reply = msg.get("content")
-                elif first.get("text"):
-                    reply = first.get("text")
-        if not reply:
-            reply = data.get("reply") or data.get("output") or data.get("response")
+        choices = data.get("choices", [])
+        if choices:
+            msg = choices[0].get("message", {})
+            reply = msg.get("content", "")
 
-        db.session.add(AIChat(
+    reply = reply.strip()
+
+    # ---- LOST_ITEM_MODE handler ----
+    try:
+        action_data = json.loads(reply)
+
+        if action_data.get("action") == "create_lost_item":
+            new_item = Item(
+                name=action_data["name"],
+                description=action_data["description"],
+                location=action_data["location"],
+                status="Lost",
+                approved=False,
+                owner_id=current_user.id
+            )
+            db.session.add(new_item)
+            db.session.commit()
+
+            confirmation = (
+                "📦 **Your lost item has been reported!**\n\n"
+                "An admin will review it shortly."
+            )
+
+            db.session.add(AIChat(
+                user_id=current_user.id,
+                sender="user",
+                message=user_msg
+            ))
+            db.session.add(AIChat(
+                user_id=current_user.id,
+                sender="ai",
+                message=confirmation
+            ))
+            db.session.commit()
+
+            return jsonify({"reply": confirmation})
+
+    except json.JSONDecodeError:
+        pass  # normal AI message, not JSON
+
+    # ---- Normal AI reply ----
+    db.session.add(AIChat(
         user_id=current_user.id,
         sender="user",
         message=user_msg
-        ))
-        db.session.add(AIChat(
-            user_id=current_user.id,
-            sender="ai",
-            message=reply
-        ))
-        db.session.commit()
+    ))
+    db.session.add(AIChat(
+        user_id=current_user.id,
+        sender="ai",
+        message=reply
+    ))
+    db.session.commit()
 
-
-    if not reply:
-        try:
-            reply = str(data)
-        except Exception:
-            reply = None
-
-    if not reply:
-        print(f"[AI DEBUG] Could not extract reply from provider JSON: {data}")
-        return jsonify({"error": "AI response parsing failed", "detail": data}), 502
-
-    print(f"[AI DEBUG] Successfully got reply from {AI_ENDPOINT}")
     return jsonify({"reply": reply})
+
 
 @app.route("/signup", methods=["GET", "POST"])
 def signup():
