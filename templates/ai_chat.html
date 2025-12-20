@@ -208,7 +208,7 @@
           const data = await resp.json();
           const aiDiv = document.createElement('div');
           aiDiv.className = 'message ai-message';
-          aiDiv.innerHTML = `<strong>Alex:</strong> ${escapeHtml(data.reply)}`;
+          aiDiv.innerHTML = `<strong>Alex:</strong> ${marked.parse(data.reply)}`;
           messagesBox.appendChild(aiDiv);
         }
       } catch (err) {
