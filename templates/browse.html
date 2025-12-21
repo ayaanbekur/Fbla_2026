@@ -7,15 +7,19 @@
 
   <div class="search-container">
     <form method="GET" action="{{ url_for('browse') }}" class="search-form">
-      <input 
-        type="text" 
-        name="q" 
-        class="search-bar" 
-        placeholder="Search by item name, description, or location..." 
-        value="{{ search_query or '' }}"
-        aria-label="Search items"
-      >
-      <button type="submit" class="search-button">🔍 Search</button>
+      <div class="search-input-wrapper">
+        <span class="search-icon" aria-hidden="true">🔍</span>
+        <input
+          type="text"
+          name="q"
+          class="search-bar"
+          placeholder="Search by item name, description, or location..."
+          value="{{ search_query or '' }}"
+          aria-label="Search items"
+        />
+        <button type="submit" class="search-pill" aria-label="Search">✨</button>
+      </div>
+
       {% if search_query %}
         <a href="{{ url_for('browse') }}" class="clear-search">Clear</a>
       {% endif %}
@@ -58,64 +62,75 @@
   color: #000000;
 }
 
+
 .search-container {
-  margin: 2rem 0;
+  margin: 1.2rem 0;
   display: flex;
   justify-content: center;
 }
 
 .search-form {
-  display: flex;
-  gap: 0.8rem;
   width: 100%;
-  max-width: 600px;
+  max-width: 620px;
+}
+
+.search-input-wrapper {
+  position: relative;
+  width: 100%;
+  display: flex;
   align-items: center;
+  gap: 6px;
+  border: 1.5px solid #0A8754;
+  border-radius: 18px;
+  padding: 3px 6px; /* slightly smaller to help fit input height */
+  box-sizing: border-box;
+  background: #ffffff;
+}
+
+.search-icon {
+  font-size: 0.88rem;
+  color: #6b6b6b;
+  margin-left: 6px;
+  margin-right: 6px;
 }
 
 .search-bar {
-  flex: 1;
-  padding: 0.8rem 1.2rem;
-  font-size: 1rem;
-  border: 2px solid #0A8754;
-  border-radius: 25px;
+  border: none;
   outline: none;
-  transition: all 0.3s ease;
-  background-color: #ffffff;
+  padding: 0 0.4rem; /* horizontal padding only */
+  height: 28px; /* fixed height to vertically center text */
+  line-height: 28px;
+  font-size: 0.92rem;
+  flex: 1;
+  background: transparent;
   color: #000000;
-  font-family: 'Poppins', sans-serif;
 }
 
 .search-bar:focus {
-  border-color: #004F2D;
-  box-shadow: 0 0 10px rgba(10, 135, 84, 0.3);
+  box-shadow: none;
 }
 
-.search-bar::placeholder {
-  color: #888;
-}
+.search-bar::placeholder { color: #9aa0a6; }
 
-.search-button {
-  padding: 0.8rem 1.5rem;
+.search-pill {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   background-color: #0A8754;
   color: #ffffff;
   border: none;
-  border-radius: 25px;
-  font-size: 1rem;
-  font-weight: 600;
   cursor: pointer;
-  transition: all 0.3s ease;
-  font-family: 'Poppins', sans-serif;
-  white-space: nowrap;
+  font-size: 0.86rem;
+  box-shadow: 0 3px 6px rgba(10,135,84,0.10);
 }
 
-.search-button:hover {
-  background-color: #004F2D;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(10, 135, 84, 0.4);
-}
+.search-pill:hover { transform: translateY(-2px); }
 
-.search-button:active {
-  transform: translateY(0);
+@media (max-width: 480px) {
+  .search-pill { width: 28px; height: 28px; }
 }
 
 .clear-search {
