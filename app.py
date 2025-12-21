@@ -119,8 +119,19 @@ def index():
 # Browse items
 @app.route("/browse")
 def browse():
+    search_query = request.args.get("q", "").strip()
     items = Item.query.filter_by(approved=True).all()
-    return render_template("browse.html", items=items)
+    
+    if search_query:
+        search_query_lower = search_query.lower()
+        items = [
+            item for item in items
+            if search_query_lower in item.name.lower()
+            or search_query_lower in item.description.lower()
+            or search_query_lower in item.location.lower()
+        ]
+    
+    return render_template("browse.html", items=items, search_query=search_query)
 
 
 # AI Chat page (display)

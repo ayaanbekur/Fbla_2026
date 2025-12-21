@@ -5,6 +5,23 @@
   <h2>Browse Found Items</h2>
   <p>Here you can see all items that have been reported. Click "Claim" to request an item if it belongs to you.</p>
 
+  <div class="search-container">
+    <form method="GET" action="{{ url_for('browse') }}" class="search-form">
+      <input 
+        type="text" 
+        name="q" 
+        class="search-bar" 
+        placeholder="Search by item name, description, or location..." 
+        value="{{ search_query or '' }}"
+        aria-label="Search items"
+      >
+      <button type="submit" class="search-button">🔍 Search</button>
+      {% if search_query %}
+        <a href="{{ url_for('browse') }}" class="clear-search">Clear</a>
+      {% endif %}
+    </form>
+  </div>
+
   <div class="card-grid">
     {% for item in items %}
       <div class="item-card">
@@ -41,6 +58,102 @@
   color: #000000;
 }
 
+.search-container {
+  margin: 2rem 0;
+  display: flex;
+  justify-content: center;
+}
+
+.search-form {
+  display: flex;
+  gap: 0.8rem;
+  width: 100%;
+  max-width: 600px;
+  align-items: center;
+}
+
+.search-bar {
+  flex: 1;
+  padding: 0.8rem 1.2rem;
+  font-size: 1rem;
+  border: 2px solid #0A8754;
+  border-radius: 25px;
+  outline: none;
+  transition: all 0.3s ease;
+  background-color: #ffffff;
+  color: #000000;
+  font-family: 'Poppins', sans-serif;
+}
+
+.search-bar:focus {
+  border-color: #004F2D;
+  box-shadow: 0 0 10px rgba(10, 135, 84, 0.3);
+}
+
+.search-bar::placeholder {
+  color: #888;
+}
+
+.search-button {
+  padding: 0.8rem 1.5rem;
+  background-color: #0A8754;
+  color: #ffffff;
+  border: none;
+  border-radius: 25px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-family: 'Poppins', sans-serif;
+  white-space: nowrap;
+}
+
+.search-button:hover {
+  background-color: #004F2D;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(10, 135, 84, 0.4);
+}
+
+.search-button:active {
+  transform: translateY(0);
+}
+
+.clear-search {
+  padding: 0.6rem 1.2rem;
+  background-color: #e0e0e0;
+  color: #333;
+  border: none;
+  border-radius: 25px;
+  text-decoration: none;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-family: 'Poppins', sans-serif;
+  display: inline-block;
+}
+
+.clear-search:hover {
+  background-color: #c0c0c0;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+@media (max-width: 600px) {
+  .search-form {
+    flex-wrap: wrap;
+    max-width: 100%;
+  }
+  
+  .search-bar {
+    width: 100%;
+    flex: none;
+  }
+  
+  .search-button,
+  .clear-search {
+    flex: 1;
+  }
+}
 
 .card-grid {
     display: grid;
