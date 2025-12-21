@@ -381,7 +381,6 @@ def global_chat():
  
 # Chat with admin
 @app.route("/chat/admin", methods=["GET", "POST"])
-@admin_required
 @login_required
 def admin_chat():
     # Check if current user is logged in admin (session-based)
