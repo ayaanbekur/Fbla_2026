@@ -159,8 +159,7 @@
       .nav-toggle[aria-expanded="true"] span:nth-child(2) { opacity: 0; transform: scaleX(0); }
       .nav-toggle[aria-expanded="true"] span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
 
-      /* Hide some holiday decorations on small screens to avoid overflow (keep snow) */
-      #xmas-tree, #xmas-modal { display: none !important; }
+      /* Seasonal decorations removed for post-holiday */
     }
 
     /* Center content & fix spacing */
@@ -219,97 +218,7 @@
   <!-- Navbar -->
   <nav>
 
-    <!-- Christmas Decorations -->
-    <img id="xmas-tree" src="{{ url_for('static', filename='images/xmas_tree.png') }}"
-         alt="Christmas tree"
-         style="position:fixed;right:18px;bottom:18px;width:140px;pointer-events:none;z-index:900;opacity:0.95;">
-
-    <div id="snow-wrapper"
-         aria-hidden="true"
-         style="position:fixed;left:0;top:0;right:0;bottom:0;pointer-events:none;z-index:800;"></div>
-
-    <div id="xmas-modal"
-         style="position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(200,0,0,0.95);z-index:2000;visibility:hidden;opacity:0;transition:opacity .35s;">
-      <div style="background:#fff;border-radius:18px;padding:28px;max-width:420px;width:92%;text-align:center;box-shadow:0 18px 50px rgba(0,0,0,0.45);position:relative;">
-        <img src="{{ url_for('static', filename='images/present.png') }}" alt="present" style="width:88px;margin-bottom:14px;">
-        <h2 style="margin:0 0 8px;color:#C8102E;font-family:'Playfair Display',serif;">Holiday surprise</h2>
-        <p id="days-until-xmas" style="margin:0 0 14px;font-size:1.05rem;color:#222"></p>
-        <button id="close-xmas" class="cta-button" style="background:#000;color:#fff;border-radius:12px;padding:10px 14px;">Close</button>
-        <button id="dismiss-xmas"
-                style="position:absolute;top:8px;right:12px;border:none;background:none;color:#999;font-size:18px;cursor:pointer;">
-          ✕
-        </button>
-      </div>
-    </div>
-
-    <script>
-      (function initXmas(){
-        const modal = document.getElementById('xmas-modal');
-        const close = document.getElementById('close-xmas');
-        const dismiss = document.getElementById('dismiss-xmas');
-        const seen = sessionStorage.getItem('xmas_seen_v1');
-
-        function daysUntilXmas() {
-          const now = new Date();
-          let year = now.getFullYear();
-          const xmas = new Date(year, 11, 25);
-          if (now > xmas) xmas.setFullYear(year + 1);
-          return Math.ceil((xmas - now) / (1000*60*60*24));
-        }
-
-        const daysNode = document.getElementById('days-until-xmas');
-        const days = daysUntilXmas();
-        daysNode.textContent = `${days} day${days === 1 ? '' : 's'} until Christmas! 🎄`;
-
-        if (!seen) {
-          modal.style.visibility = 'visible';
-          modal.style.opacity = '1';
-          sessionStorage.setItem('xmas_seen_v1', '1');
-        }
-
-        function hide() {
-          modal.style.opacity = '0';
-          setTimeout(() => modal.style.visibility = 'hidden', 350);
-        }
-
-        close.addEventListener('click', hide);
-        dismiss.addEventListener('click', hide);
-
-        const wrapper = document.getElementById('snow-wrapper');
-        const COUNT = Math.min(140, Math.round(window.innerWidth/6));
-
-        for (let i = 0; i < COUNT; i++) {
-          const flake = document.createElement('div');
-
-          const size = Math.random()*6 + 4;
-          flake.style.position = 'absolute';
-          flake.style.left = (Math.random()*100) + '%';
-          flake.style.top = (Math.random()*-100) + 'vh';
-          flake.style.width = size+'px';
-          flake.style.height = size+'px';
-          flake.style.borderRadius = '50%';
-          flake.style.background = `rgba(255,255,255,${0.6 + Math.random()*0.4})`;
-          flake.style.pointerEvents = 'none';
-          wrapper.appendChild(flake);
-
-          const dur = 8 + Math.random()*14;
-          const delay = Math.random()* -dur;
-
-          flake.animate(
-            [
-              { transform: `translateY(0)` },
-              { transform: `translateY(${window.innerHeight+200}px) translateX(${Math.random()*200-100}px)` }
-            ],
-            {
-              duration: dur*1000,
-              iterations: Infinity,
-              delay: delay*1000,
-              easing: 'linear'
-            }
-          );
-        }
-      })();
-    </script>
+    <!-- Seasonal decorations removed (post-holiday) -->
 
     <!-- Logo -->
     <div class="logo">
