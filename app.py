@@ -166,7 +166,7 @@ def ai_chat():
         items_list = "There are currently no approved items available."
 
     system_prompt = f"""
-You are Alex, a friendly AI assistant for a Lost & Found service.
+You are Roman, a friendly AI assistant for a Lost & Found service.
 
 {items_list}
 
