@@ -1,16 +1,16 @@
 {% extends "base.html" %}
 
-{% block title %}Chat with Alex - AI Assistant{% endblock %}
+{% block title %}Chat with Roman - AI Assistant{% endblock %}
 
 {% block content %}
 <div class="ai-chat-page">
-  <h1 style="color: #C8102E; font-family: 'Playfair Display', serif; text-align: center; margin-bottom: 0.5rem;">💬 Chat with Alex</h1>
+  <h1 style="color: #C8102E; font-family: 'Playfair Display', serif; text-align: center; margin-bottom: 0.5rem;">💬 Chat with Roman</h1>
   <p style="text-align: center; color: #666; margin-bottom: 2rem; font-size: 1.05rem;">Your friendly AI assistant is here to help</p>
 
   <div class="chat-container">
     <div id="messages" class="messages-box">
       <div class="message ai-message">
-        <strong>Alex:</strong> Hi there! I'm Alex, your friendly AI assistant. How can I help you today?
+        <strong>Roman:</strong> Hi there! I'm Roman, your friendly AI assistant. How can I help you today?
       </div>
     </div>
 
@@ -208,7 +208,7 @@
           const data = await resp.json();
           const aiDiv = document.createElement('div');
           aiDiv.className = 'message ai-message';
-          aiDiv.innerHTML = `<strong>Alex:</strong> ${marked.parse(data.reply)}`;
+          aiDiv.innerHTML = `<strong>Roman:</strong> ${marked.parse(data.reply)}`;
           messagesBox.appendChild(aiDiv);
         }
       } catch (err) {
