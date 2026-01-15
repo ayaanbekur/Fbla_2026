@@ -1,7 +1,11 @@
-/* Fonts */
+/* =====================
+   FONTS
+===================== */
 @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Poppins:wght@300;400;500;600;700&family=Inter:wght@400;500;700&display=swap');
 
-/* Root Variables */
+/* =====================
+   ROOT VARIABLES
+===================== */
 :root {
   --primary: #C8102E;
   --primary-dark: #8B0A23;
@@ -19,7 +23,9 @@
   --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Global Styles */
+/* =====================
+   GLOBAL STYLES
+===================== */
 * {
   margin: 0;
   padding: 0;
@@ -45,7 +51,9 @@ h1, h2, h3, h4, h5, h6, .logo {
   color: var(--dark);
 }
 
-/* Navbar - Premium */
+/* =====================
+   NAVBAR - PREMIUM
+===================== */
 .navbar {
   background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
   color: #FFFFFF;
@@ -109,7 +117,9 @@ h1, h2, h3, h4, h5, h6, .logo {
   transform: translateY(-2px);
 }
 
-/* Homepage Hero */
+/* =====================
+   HOMEPAGE HERO
+===================== */
 .homepage {
   min-height: 85vh;
   display: flex;
