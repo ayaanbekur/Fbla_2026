@@ -345,8 +345,6 @@ def admin_login():
 
     return render_template("admin_login.html")
 
-  
-# Global chatroom (for navbar link)
 # Global chat (everyone)
 @app.route("/chat/global", methods=["GET", "POST"])
 @login_required
