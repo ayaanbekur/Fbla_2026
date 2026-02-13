@@ -70,6 +70,13 @@
   --accent-dark: #16a085;
 }
 
+/* Custom Color Theme */
+[data-theme="custom"] {
+  --primary: var(--custom-primary, #C8102E);
+  --primary-dark: var(--custom-primary-dark, #8B0A23);
+  --primary-light: var(--custom-primary-light, #E63946);
+}
+
 /* =====================
    GLOBAL STYLES
 ===================== */

@@ -316,6 +316,53 @@
       color: white;
       border-color: var(--primary);
     }
+
+    .color-picker-container {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .color-picker {
+      width: 60px;
+      height: 40px;
+      border: 2px solid var(--border);
+      border-radius: 8px;
+      cursor: pointer;
+      background: none;
+    }
+
+    .color-picker::-webkit-color-swatch-wrapper {
+      padding: 0;
+    }
+
+    .color-picker::-webkit-color-swatch {
+      border: none;
+      border-radius: 4px;
+    }
+
+    .apply-color-btn, .reset-color-btn {
+      padding: 8px 16px;
+      border: 2px solid var(--border);
+      background: var(--light);
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: all 0.3s ease;
+    }
+
+    .apply-color-btn:hover {
+      border-color: var(--primary);
+      background: var(--primary);
+      color: white;
+    }
+
+    .reset-color-btn:hover {
+      border-color: var(--accent);
+      background: var(--accent);
+      color: white;
+    }
   </style>
   </style>
 </head>
@@ -453,6 +500,15 @@
           <button class="color-btn" data-color="green">🟢 Green</button>
           <button class="color-btn" data-color="purple">🟣 Purple</button>
         </div>
+
+        <div class="option-group">
+          <h4>Custom Color</h4>
+          <div class="color-picker-container">
+            <input type="color" id="custom-color-picker" class="color-picker" value="#C8102E">
+            <button id="apply-custom-color" class="apply-color-btn">Apply Color</button>
+            <button id="reset-color" class="reset-color-btn">Reset to Default</button>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -465,15 +521,28 @@
       const accessibilityClose = document.getElementById('accessibility-close');
       const themeBtns = document.querySelectorAll('.theme-btn');
       const colorBtns = document.querySelectorAll('.color-btn');
+      const customColorPicker = document.getElementById('custom-color-picker');
+      const applyCustomColorBtn = document.getElementById('apply-custom-color');
+      const resetColorBtn = document.getElementById('reset-color');
 
       // Load saved preferences
       const savedTheme = localStorage.getItem('theme') || 'light';
       const savedColor = localStorage.getItem('color') || 'default';
+      const savedCustomColor = localStorage.getItem('customColor') || '#C8102E';
 
+      // Set initial theme
       document.documentElement.setAttribute('data-theme', savedTheme);
       if (savedColor !== 'default') {
         document.documentElement.setAttribute('data-theme', savedColor);
       }
+
+      // Set custom color if using custom theme
+      if (savedColor === 'custom') {
+        applyCustomColor(savedCustomColor);
+      }
+
+      // Set color picker value
+      customColorPicker.value = savedCustomColor;
 
       // Update active buttons
       themeBtns.forEach(btn => {
@@ -487,6 +556,48 @@
           btn.classList.add('active');
         }
       });
+
+      // Helper function to apply custom color
+      function applyCustomColor(color) {
+        // Set the custom color CSS variables
+        document.documentElement.style.setProperty('--custom-primary', color);
+        document.documentElement.style.setProperty('--custom-primary-dark', darkenColor(color, 0.3));
+        document.documentElement.style.setProperty('--custom-primary-light', lightenColor(color, 0.2));
+
+        // Set theme to custom
+        document.documentElement.setAttribute('data-theme', 'custom');
+        localStorage.setItem('color', 'custom');
+        localStorage.setItem('customColor', color);
+
+        // Update active states
+        colorBtns.forEach(b => b.classList.remove('active'));
+      }
+
+      // Helper function to darken color
+      function darkenColor(color, amount) {
+        const usePound = color[0] === '#';
+        const col = usePound ? color.slice(1) : color;
+
+        const num = parseInt(col, 16);
+        const r = Math.max(0, (num >> 16) - Math.round(255 * amount));
+        const g = Math.max(0, (num >> 8 & 0x00FF) - Math.round(255 * amount));
+        const b = Math.max(0, (num & 0x0000FF) - Math.round(255 * amount));
+
+        return (usePound ? '#' : '') + ('000000' + (r << 16 | g << 8 | b).toString(16)).slice(-6);
+      }
+
+      // Helper function to lighten color
+      function lightenColor(color, amount) {
+        const usePound = color[0] === '#';
+        const col = usePound ? color.slice(1) : color;
+
+        const num = parseInt(col, 16);
+        const r = Math.min(255, (num >> 16) + Math.round(255 * amount));
+        const g = Math.min(255, (num >> 8 & 0x00FF) + Math.round(255 * amount));
+        const b = Math.min(255, (num & 0x0000FF) + Math.round(255 * amount));
+
+        return (usePound ? '#' : '') + ('000000' + (r << 16 | g << 8 | b).toString(16)).slice(-6);
+      }
 
       // Modal controls
       accessibilityBtn.addEventListener('click', function() {
@@ -511,6 +622,11 @@
           localStorage.setItem('theme', theme);
           localStorage.setItem('color', 'default'); // Reset color when changing theme
 
+          // Clear custom color properties
+          document.documentElement.style.removeProperty('--custom-primary');
+          document.documentElement.style.removeProperty('--custom-primary-dark');
+          document.documentElement.style.removeProperty('--custom-primary-light');
+
           // Update active states
           themeBtns.forEach(b => b.classList.remove('active'));
           colorBtns.forEach(b => b.classList.remove('active'));
@@ -526,8 +642,16 @@
           if (color === 'default') {
             const currentTheme = localStorage.getItem('theme') || 'light';
             document.documentElement.setAttribute('data-theme', currentTheme);
+            // Clear custom color properties
+            document.documentElement.style.removeProperty('--custom-primary');
+            document.documentElement.style.removeProperty('--custom-primary-dark');
+            document.documentElement.style.removeProperty('--custom-primary-light');
           } else {
             document.documentElement.setAttribute('data-theme', color);
+            // Clear custom color properties
+            document.documentElement.style.removeProperty('--custom-primary');
+            document.documentElement.style.removeProperty('--custom-primary-dark');
+            document.documentElement.style.removeProperty('--custom-primary-light');
           }
           localStorage.setItem('color', color);
 
@@ -535,6 +659,35 @@
           colorBtns.forEach(b => b.classList.remove('active'));
           this.classList.add('active');
         });
+      });
+
+      // Custom color picker
+      applyCustomColorBtn.addEventListener('click', function() {
+        const selectedColor = customColorPicker.value;
+        applyCustomColor(selectedColor);
+
+        // Update active states
+        colorBtns.forEach(b => b.classList.remove('active'));
+      });
+
+      // Reset color button
+      resetColorBtn.addEventListener('click', function() {
+        // Reset to default theme
+        const currentTheme = localStorage.getItem('theme') || 'light';
+        document.documentElement.setAttribute('data-theme', currentTheme);
+        localStorage.setItem('color', 'default');
+
+        // Clear custom color properties
+        document.documentElement.style.removeProperty('--custom-primary');
+        document.documentElement.style.removeProperty('--custom-primary-dark');
+        document.documentElement.style.removeProperty('--custom-primary-light');
+
+        // Reset color picker
+        customColorPicker.value = '#C8102E';
+
+        // Update active states
+        colorBtns.forEach(b => b.classList.remove('active'));
+        document.querySelector('[data-color="default"]').classList.add('active');
       });
     })();
   </script>
