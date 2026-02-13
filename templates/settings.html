@@ -15,7 +15,7 @@
             <strong>Email:</strong> {{ current_user.email }}
         </div>
         <div class="info-item">
-            <strong>Account Created:</strong> {{ current_user.created_at.strftime('%B %d, %Y at %I:%M %p') }}
+            <strong>Account Created:</strong> {{ current_user.created_at.strftime('%B %d, %Y at %I:%M %p') if current_user.created_at else 'Not available' }}
         </div>
         <div class="info-item">
             <strong>Admin Status:</strong> {{ 'Yes' if current_user.is_admin else 'No' }}

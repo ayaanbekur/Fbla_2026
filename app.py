@@ -91,6 +91,10 @@ def get_or_create_admin():
         admin.is_admin = True
         admin.set_password(ADMIN_PASSWORD)
 
+    # Set created_at if not set
+    if admin.created_at is None:
+        admin.created_at = datetime.utcnow()
+
     db.session.commit()
     return admin
 
@@ -109,8 +113,68 @@ def inject_now():
     """Inject helper values into Jinja templates."""
     return {"now": datetime.now, "current_year": datetime.now().year}
 
+def run_migration():
+    """Run database migrations for production"""
+    try:
+        # Check if we're using PostgreSQL
+        if db_url.startswith("postgresql://"):
+            import psycopg2
+            import urllib.parse
+
+            # Parse the database URL
+            parsed = urllib.parse.urlparse(db_url)
+            dbname = parsed.path.lstrip('/')
+            user = parsed.username
+            password = parsed.password
+            host = parsed.hostname
+            port = parsed.port or 5432
+
+            # Connect to PostgreSQL
+            conn = psycopg2.connect(
+                dbname=dbname,
+                user=user,
+                password=password,
+                host=host,
+                port=port,
+                sslmode='require' if 'sslmode=require' in db_url else 'prefer'
+            )
+            cursor = conn.cursor()
+
+            # Check if created_at column exists
+            cursor.execute("""
+                SELECT column_name
+                FROM information_schema.columns
+                WHERE table_name = 'users' AND column_name = 'created_at'
+            """)
+            exists = cursor.fetchone()
+
+            if not exists:
+                print("Adding created_at column to users table...")
+                cursor.execute("""
+                    ALTER TABLE users
+                    ADD COLUMN created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                """)
+                conn.commit()
+                print("Successfully added created_at column.")
+            else:
+                print("created_at column already exists.")
+
+            conn.close()
+    except Exception as e:
+        print(f"Migration error: {e}")
+
 with app.app_context():
+    run_migration()
     db.create_all()
+
+    # Update existing users to have created_at timestamps
+    users_without_created_at = User.query.filter(User.created_at.is_(None)).all()
+    for user in users_without_created_at:
+        user.created_at = datetime.utcnow()
+    if users_without_created_at:
+        db.session.commit()
+        print(f"Updated {len(users_without_created_at)} users with created_at timestamps.")
+
     get_or_create_admin()
 
 # Home
