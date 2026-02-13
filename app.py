@@ -48,7 +48,8 @@ app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 db_url = os.environ.get('DATABASE_URL', 'sqlite:///site.db')
 if db_url.startswith("postgres://"):
     db_url = db_url.replace("postgres://", "postgresql://", 1)
-    db_url += "?sslmode=require"
+    if "sslmode" not in db_url:
+        db_url += "?sslmode=require"
 app.config['SQLALCHEMY_DATABASE_URI'] = db_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db.init_app(app)
