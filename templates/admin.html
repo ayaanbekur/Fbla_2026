@@ -79,7 +79,7 @@
 
           {% if item['status'] == 'Claimed' %}
           <form method="post" action="{{ url_for('clear_claim', item_id=item['id']) }}" style="display:inline;margin-left:0.6rem;">
-            <button type="submit" class="nav-link" style="background:#fff;color:#000;border-radius:8px;padding:0.35rem 0.6rem;border:none;cursor:pointer;">Clear Claim</button>
+            <button type="submit" class="nav-link" style="background:var(--surface);color:var(--text);border-radius:8px;padding:0.35rem 0.6rem;border:none;cursor:pointer;">Clear Claim</button>
           </form>
           {% endif %}
 

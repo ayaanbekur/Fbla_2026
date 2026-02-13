@@ -20,7 +20,7 @@
       min-height: 100vh;
       display: flex;
       flex-direction: column;
-      background-color: var(--light);
+      background-color: var(--background);
       color: var(--text);
       font-family: 'Poppins', sans-serif;
     }
@@ -175,7 +175,7 @@
     }
 
     .container {
-      background: var(--dark);
+      background: var(--surface);
       border-radius: 16px;
       padding: 2rem;
       box-shadow: 0 6px 18px rgba(0,0,0,0.15);
@@ -204,8 +204,8 @@
 
     /* Footer fix */
     footer {
-      background-color: var(--dark);
-      color: var(--gray);
+      background-color: var(--surface);
+      color: var(--text-secondary);
       text-align: center;
       padding: 20px;
       font-size: 0.9rem;
@@ -250,7 +250,7 @@
     }
 
     .accessibility-modal-content {
-      background-color: var(--light);
+      background-color: var(--surface);
       margin: 15% auto;
       padding: 0;
       border-radius: 12px;
@@ -298,7 +298,7 @@
       margin: 5px;
       padding: 10px 15px;
       border: 2px solid var(--border);
-      background: var(--light);
+      background: var(--surface);
       border-radius: 8px;
       cursor: pointer;
       font-size: 14px;
@@ -345,7 +345,7 @@
     .apply-color-btn, .reset-color-btn {
       padding: 8px 16px;
       border: 2px solid var(--border);
-      background: var(--light);
+      background: var(--surface);
       border-radius: 6px;
       cursor: pointer;
       font-size: 14px;
@@ -532,13 +532,10 @@
 
       // Set initial theme
       document.documentElement.setAttribute('data-theme', savedTheme);
-      if (savedColor !== 'default') {
-        document.documentElement.setAttribute('data-theme', savedColor);
-      }
 
-      // Set custom color if using custom theme
-      if (savedColor === 'custom') {
-        applyCustomColor(savedCustomColor);
+      // Apply color modifications if not default
+      if (savedColor !== 'default') {
+        applyColorTheme(savedColor, savedCustomColor);
       }
 
       // Set color picker value
@@ -557,20 +554,32 @@
         }
       });
 
+      // Helper function to apply color theme modifications
+      function applyColorTheme(colorType, customColor = null) {
+        if (colorType === 'blue') {
+          document.documentElement.style.setProperty('--primary', '#3498db');
+          document.documentElement.style.setProperty('--primary-dark', '#2980b9');
+          document.documentElement.style.setProperty('--primary-light', '#5dade2');
+        } else if (colorType === 'green') {
+          document.documentElement.style.setProperty('--primary', '#27ae60');
+          document.documentElement.style.setProperty('--primary-dark', '#229954');
+          document.documentElement.style.setProperty('--primary-light', '#58d68d');
+        } else if (colorType === 'purple') {
+          document.documentElement.style.setProperty('--primary', '#9b59b6');
+          document.documentElement.style.setProperty('--primary-dark', '#8e44ad');
+          document.documentElement.style.setProperty('--primary-light', '#bb8fce');
+        } else if (colorType === 'custom' && customColor) {
+          document.documentElement.style.setProperty('--primary', customColor);
+          document.documentElement.style.setProperty('--primary-dark', darkenColor(customColor, 0.3));
+          document.documentElement.style.setProperty('--primary-light', lightenColor(customColor, 0.2));
+        }
+      }
+
       // Helper function to apply custom color
       function applyCustomColor(color) {
-        // Set the custom color CSS variables
-        document.documentElement.style.setProperty('--custom-primary', color);
-        document.documentElement.style.setProperty('--custom-primary-dark', darkenColor(color, 0.3));
-        document.documentElement.style.setProperty('--custom-primary-light', lightenColor(color, 0.2));
-
-        // Set theme to custom
-        document.documentElement.setAttribute('data-theme', 'custom');
+        applyColorTheme('custom', color);
         localStorage.setItem('color', 'custom');
         localStorage.setItem('customColor', color);
-
-        // Update active states
-        colorBtns.forEach(b => b.classList.remove('active'));
       }
 
       // Helper function to darken color
@@ -620,18 +629,23 @@
           const theme = this.dataset.theme;
           document.documentElement.setAttribute('data-theme', theme);
           localStorage.setItem('theme', theme);
-          localStorage.setItem('color', 'default'); // Reset color when changing theme
 
-          // Clear custom color properties
-          document.documentElement.style.removeProperty('--custom-primary');
-          document.documentElement.style.removeProperty('--custom-primary-dark');
-          document.documentElement.style.removeProperty('--custom-primary-light');
+          // Keep current color setting, just change the base theme
+          const currentColor = localStorage.getItem('color') || 'default';
+          const currentCustomColor = localStorage.getItem('customColor') || '#C8102E';
+
+          if (currentColor !== 'default') {
+            applyColorTheme(currentColor, currentCustomColor);
+          } else {
+            // Reset to default colors for this theme
+            document.documentElement.style.removeProperty('--primary');
+            document.documentElement.style.removeProperty('--primary-dark');
+            document.documentElement.style.removeProperty('--primary-light');
+          }
 
           // Update active states
           themeBtns.forEach(b => b.classList.remove('active'));
-          colorBtns.forEach(b => b.classList.remove('active'));
           this.classList.add('active');
-          document.querySelector('[data-color="default"]').classList.add('active');
         });
       });
 
@@ -639,21 +653,17 @@
       colorBtns.forEach(btn => {
         btn.addEventListener('click', function() {
           const color = this.dataset.color;
-          if (color === 'default') {
-            const currentTheme = localStorage.getItem('theme') || 'light';
-            document.documentElement.setAttribute('data-theme', currentTheme);
-            // Clear custom color properties
-            document.documentElement.style.removeProperty('--custom-primary');
-            document.documentElement.style.removeProperty('--custom-primary-dark');
-            document.documentElement.style.removeProperty('--custom-primary-light');
-          } else {
-            document.documentElement.setAttribute('data-theme', color);
-            // Clear custom color properties
-            document.documentElement.style.removeProperty('--custom-primary');
-            document.documentElement.style.removeProperty('--custom-primary-dark');
-            document.documentElement.style.removeProperty('--custom-primary-light');
-          }
           localStorage.setItem('color', color);
+
+          if (color === 'default') {
+            // Reset to default colors
+            document.documentElement.style.removeProperty('--primary');
+            document.documentElement.style.removeProperty('--primary-dark');
+            document.documentElement.style.removeProperty('--primary-light');
+          } else {
+            // Apply the color theme while keeping current base theme
+            applyColorTheme(color);
+          }
 
           // Update active states
           colorBtns.forEach(b => b.classList.remove('active'));
@@ -672,15 +682,11 @@
 
       // Reset color button
       resetColorBtn.addEventListener('click', function() {
-        // Reset to default theme
-        const currentTheme = localStorage.getItem('theme') || 'light';
-        document.documentElement.setAttribute('data-theme', currentTheme);
+        // Reset to default colors
         localStorage.setItem('color', 'default');
-
-        // Clear custom color properties
-        document.documentElement.style.removeProperty('--custom-primary');
-        document.documentElement.style.removeProperty('--custom-primary-dark');
-        document.documentElement.style.removeProperty('--custom-primary-light');
+        document.documentElement.style.removeProperty('--primary');
+        document.documentElement.style.removeProperty('--primary-dark');
+        document.documentElement.style.removeProperty('--primary-light');
 
         // Reset color picker
         customColorPicker.value = '#C8102E';
