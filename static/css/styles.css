@@ -24,6 +24,53 @@
 }
 
 /* =====================
+   THEMES
+===================== */
+/* Dark Mode */
+[data-theme="dark"] {
+  --primary: #E63946;
+  --primary-dark: #C8102E;
+  --primary-light: #FF6B7A;
+  --accent: #2ECC71;
+  --accent-dark: #27AE60;
+  --dark: #f8f9fa;
+  --light: #1a1a1a;
+  --gray: #95a5a6;
+  --text: #ecf0f1;
+  --border: #34495e;
+  --shadow-sm: 0 2px 4px rgba(0,0,0,0.3);
+  --shadow-md: 0 6px 16px rgba(0,0,0,0.4);
+  --shadow-lg: 0 12px 32px rgba(0,0,0,0.5);
+}
+
+/* Blue Theme */
+[data-theme="blue"] {
+  --primary: #3498db;
+  --primary-dark: #2980b9;
+  --primary-light: #5dade2;
+  --accent: #e74c3c;
+  --accent-dark: #c0392b;
+}
+
+/* Green Theme */
+[data-theme="green"] {
+  --primary: #27ae60;
+  --primary-dark: #229954;
+  --primary-light: #58d68d;
+  --accent: #f39c12;
+  --accent-dark: #e67e22;
+}
+
+/* Purple Theme */
+[data-theme="purple"] {
+  --primary: #9b59b6;
+  --primary-dark: #8e44ad;
+  --primary-light: #bb8fce;
+  --accent: #1abc9c;
+  --accent-dark: #16a085;
+}
+
+/* =====================
    GLOBAL STYLES
 ===================== */
 * {

@@ -16,6 +16,7 @@ class User(UserMixin, db.Model):
     email = db.Column(db.String(120), unique=True, nullable=False)
     password_hash = db.Column(db.String(200), nullable=False)
     is_admin = db.Column(db.Boolean, default=False, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
 
     sent_messages = db.relationship("Message", foreign_keys="Message.sender_id", backref="sender_user", lazy=True)
     received_messages = db.relationship("Message", foreign_keys="Message.receiver_id", backref="receiver_user", lazy=True)

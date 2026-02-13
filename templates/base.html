@@ -210,7 +210,112 @@
       font-size: 0.9rem;
       width: 100%;
       margin-top: auto;
+      position: relative;
     }
+
+    /* Accessibility Button */
+    .accessibility-btn {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      background: var(--primary);
+      color: white;
+      border: none;
+      font-size: 20px;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      z-index: 1000;
+      transition: all 0.3s ease;
+    }
+
+    .accessibility-btn:hover {
+      background: var(--primary-dark);
+      transform: scale(1.1);
+    }
+
+    /* Accessibility Modal */
+    .accessibility-modal {
+      display: none;
+      position: fixed;
+      z-index: 1001;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0,0,0,0.5);
+    }
+
+    .accessibility-modal-content {
+      background-color: var(--light);
+      margin: 15% auto;
+      padding: 0;
+      border-radius: 12px;
+      width: 90%;
+      max-width: 400px;
+      box-shadow: var(--shadow-lg);
+    }
+
+    .accessibility-modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 20px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .accessibility-modal-header h3 {
+      margin: 0;
+      color: var(--text);
+    }
+
+    .accessibility-close {
+      background: none;
+      border: none;
+      font-size: 28px;
+      cursor: pointer;
+      color: var(--gray);
+    }
+
+    .accessibility-options {
+      padding: 20px;
+    }
+
+    .option-group {
+      margin-bottom: 20px;
+    }
+
+    .option-group h4 {
+      margin: 0 0 10px 0;
+      color: var(--text);
+      font-size: 1.1rem;
+    }
+
+    .theme-btn, .color-btn {
+      margin: 5px;
+      padding: 10px 15px;
+      border: 2px solid var(--border);
+      background: white;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: all 0.3s ease;
+    }
+
+    .theme-btn:hover, .color-btn:hover {
+      border-color: var(--primary);
+      background: var(--primary);
+      color: white;
+    }
+
+    .theme-btn.active, .color-btn.active {
+      background: var(--primary);
+      color: white;
+      border-color: var(--primary);
+    }
+  </style>
   </style>
 </head>
 
@@ -264,6 +369,7 @@
       {% endif %}
 
       {% if current_user.is_authenticated %}
+        <li><a href="{{ url_for('settings') }}">⚙️ Settings</a></li>
         <li><a href="{{ url_for('logout') }}">Logout</a></li>
       {% else %}
         <li><a href="{{ url_for('login') }}">Login</a></li>
@@ -317,6 +423,119 @@
 
   <footer>
     &copy; {{ now().year }} Lost & Found
+
+    <!-- Accessibility Button -->
+    <button id="accessibility-btn" class="accessibility-btn" aria-label="Accessibility options">
+      ♿
+    </button>
   </footer>
+
+  <!-- Accessibility Modal -->
+  <div id="accessibility-modal" class="accessibility-modal">
+    <div class="accessibility-modal-content">
+      <div class="accessibility-modal-header">
+        <h3>Accessibility Options</h3>
+        <button class="accessibility-close" id="accessibility-close">&times;</button>
+      </div>
+
+      <div class="accessibility-options">
+        <div class="option-group">
+          <h4>Theme</h4>
+          <button class="theme-btn" data-theme="light">☀️ Light</button>
+          <button class="theme-btn" data-theme="dark">🌙 Dark</button>
+        </div>
+
+        <div class="option-group">
+          <h4>Color Scheme</h4>
+          <button class="color-btn" data-color="default">🔴 Default</button>
+          <button class="color-btn" data-color="blue">🔵 Blue</button>
+          <button class="color-btn" data-color="green">🟢 Green</button>
+          <button class="color-btn" data-color="purple">🟣 Purple</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Accessibility functionality
+    (function(){
+      const accessibilityBtn = document.getElementById('accessibility-btn');
+      const accessibilityModal = document.getElementById('accessibility-modal');
+      const accessibilityClose = document.getElementById('accessibility-close');
+      const themeBtns = document.querySelectorAll('.theme-btn');
+      const colorBtns = document.querySelectorAll('.color-btn');
+
+      // Load saved preferences
+      const savedTheme = localStorage.getItem('theme') || 'light';
+      const savedColor = localStorage.getItem('color') || 'default';
+
+      document.documentElement.setAttribute('data-theme', savedTheme);
+      if (savedColor !== 'default') {
+        document.documentElement.setAttribute('data-theme', savedColor);
+      }
+
+      // Update active buttons
+      themeBtns.forEach(btn => {
+        if (btn.dataset.theme === savedTheme) {
+          btn.classList.add('active');
+        }
+      });
+
+      colorBtns.forEach(btn => {
+        if (btn.dataset.color === savedColor) {
+          btn.classList.add('active');
+        }
+      });
+
+      // Modal controls
+      accessibilityBtn.addEventListener('click', function() {
+        accessibilityModal.style.display = 'block';
+      });
+
+      accessibilityClose.addEventListener('click', function() {
+        accessibilityModal.style.display = 'none';
+      });
+
+      window.addEventListener('click', function(event) {
+        if (event.target === accessibilityModal) {
+          accessibilityModal.style.display = 'none';
+        }
+      });
+
+      // Theme switching
+      themeBtns.forEach(btn => {
+        btn.addEventListener('click', function() {
+          const theme = this.dataset.theme;
+          document.documentElement.setAttribute('data-theme', theme);
+          localStorage.setItem('theme', theme);
+          localStorage.setItem('color', 'default'); // Reset color when changing theme
+
+          // Update active states
+          themeBtns.forEach(b => b.classList.remove('active'));
+          colorBtns.forEach(b => b.classList.remove('active'));
+          this.classList.add('active');
+          document.querySelector('[data-color="default"]').classList.add('active');
+        });
+      });
+
+      // Color switching
+      colorBtns.forEach(btn => {
+        btn.addEventListener('click', function() {
+          const color = this.dataset.color;
+          if (color === 'default') {
+            const currentTheme = localStorage.getItem('theme') || 'light';
+            document.documentElement.setAttribute('data-theme', currentTheme);
+          } else {
+            document.documentElement.setAttribute('data-theme', color);
+          }
+          localStorage.setItem('color', color);
+
+          // Update active states
+          colorBtns.forEach(b => b.classList.remove('active'));
+          this.classList.add('active');
+        });
+      });
+    })();
+  </script>
 </body>
 </html>

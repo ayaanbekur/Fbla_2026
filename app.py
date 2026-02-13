@@ -327,6 +327,37 @@ def logout():
     flash("Logged out successfully!", "info")
     return redirect(url_for("login"))
 
+@app.route("/settings", methods=["GET", "POST"])
+@login_required
+def settings():
+    if request.method == "POST":
+        current_password = request.form.get("current_password")
+        new_password = request.form.get("new_password")
+        confirm_password = request.form.get("confirm_password")
+
+        if not current_password or not new_password or not confirm_password:
+            flash("All password fields are required.", "danger")
+            return redirect(url_for("settings"))
+
+        if not current_user.check_password(current_password):
+            flash("Current password is incorrect.", "danger")
+            return redirect(url_for("settings"))
+
+        if new_password != confirm_password:
+            flash("New passwords do not match.", "danger")
+            return redirect(url_for("settings"))
+
+        if len(new_password) < 6:
+            flash("New password must be at least 6 characters long.", "danger")
+            return redirect(url_for("settings"))
+
+        current_user.set_password(new_password)
+        db.session.commit()
+        flash("Password changed successfully!", "success")
+        return redirect(url_for("settings"))
+
+    return render_template("settings.html")
+
 @app.route("/admin_login", methods=["GET", "POST"])
 @admin_required
 def admin_login():
