@@ -13,8 +13,12 @@ def run_school_migration():
 
         if db_url.startswith("postgresql://") or db_url.startswith("postgres://"):
             # Import psycopg2 only when needed
-            import psycopg2
-            import urllib.parse
+            try:
+                import psycopg2
+                import urllib.parse
+            except ImportError:
+                print("[MIGRATION] psycopg2 not available, skipping PostgreSQL migration")
+                return
 
             # Convert postgres:// to postgresql:// for consistency
             if db_url.startswith("postgres://"):
@@ -30,16 +34,20 @@ def run_school_migration():
 
             print(f"[MIGRATION] Connecting to PostgreSQL database: {host}:{port}/{dbname}")
 
-            # Connect to PostgreSQL
-            conn = psycopg2.connect(
-                dbname=dbname,
-                user=user,
-                password=password,
-                host=host,
-                port=port,
-                sslmode='require' if 'sslmode=require' in db_url else 'prefer'
-            )
-            cursor = conn.cursor()
+            try:
+                # Connect to PostgreSQL
+                conn = psycopg2.connect(
+                    dbname=dbname,
+                    user=user,
+                    password=password,
+                    host=host,
+                    port=port,
+                    sslmode='require' if 'sslmode=require' in db_url else 'prefer'
+                )
+                cursor = conn.cursor()
+            except Exception as e:
+                print(f"[MIGRATION] Failed to connect to PostgreSQL database: {e}")
+                return
 
             # Add school column to users table if it doesn't exist
             cursor.execute("""
