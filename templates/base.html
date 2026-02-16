@@ -37,117 +37,168 @@
       z-index: 1000;
       box-shadow: 0 2px 10px rgba(0,0,0,0.8);
     }
-
-    nav .logo a {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      text-decoration: none;
-    }
-
-    nav .logo img {
-      height: 36px;
-      width: auto;
       display: block;
     }
 
-    /* Mobile nav toggle (hamburger) */
-    .nav-toggle {
-      display: none;
-      background: rgba(0,0,0,0.08);
-      border: none;
-      cursor: pointer;
-      padding: 10px;
-      align-items: center;
+    /* Hamburger Menu */
+    .hamburger-menu {
+      display: flex;
+      flex-direction: column;
       justify-content: center;
-      border-radius: 8px;
-      margin-left: auto; /* push to right */
+      align-items: center;
       width: 44px;
       height: 40px;
-      box-sizing: border-box;
+      background: rgba(255,255,255,0.1);
+      border: none;
+      cursor: pointer;
+      padding: 8px;
+      border-radius: 8px;
+      transition: all 0.3s ease;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.12);
     }
 
-    .nav-toggle span {
-      display: block;
+    .hamburger-menu:hover {
+      background: rgba(255,255,255,0.2);
+      transform: scale(1.05);
+    }
+
+    .hamburger-line {
       width: 22px;
       height: 3px;
-      margin: 3px 0;
       background: #ffffff;
+      margin: 3px 0;
       border-radius: 3px;
-      transition: transform 0.25s ease, opacity 0.25s ease;
+      transition: all 0.3s ease;
+      transform-origin: center;
     }
 
-    .nav-toggle { box-shadow: 0 2px 6px rgba(0,0,0,0.12); }
-
-    /* School indicator */
-    .school-indicator {
-      margin-left: 20px;
+    .hamburger-menu.active .hamburger-line:nth-child(1) {
+      transform: rotate(45deg) translate(5px, 5px);
     }
 
-    .school-badge {
-      background: rgba(255,255,255,0.2);
-      color: #FFFFFF;
-      padding: 6px 12px;
-      border-radius: 20px;
-      font-size: 0.9rem;
-      font-weight: 600;
-      border: 1px solid rgba(255,255,255,0.3);
+    .hamburger-menu.active .hamburger-line:nth-child(2) {
+      opacity: 0;
     }
 
-    nav ul {
-      list-style: none;
-      display: flex;
-      align-items: center;
-      gap: 25px;
-      margin: 0;
-      padding: 0;
+    .hamburger-menu.active .hamburger-line:nth-child(3) {
+      transform: rotate(-45deg) translate(7px, -6px);
     }
 
-    nav ul li {
-      position: relative;
-    }
-
-    nav ul li a {
-      text-decoration: none;
-      color: #FFFFFF;
-      font-size: 1rem;
-      padding: 8px 16px;
-      border-radius: 6px;
+    /* Overlay Menu */
+    .overlay-menu {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      z-index: 2000;
+      opacity: 0;
+      visibility: hidden;
       transition: all 0.3s ease;
     }
 
-    nav ul li a:hover {
-      background-color: var(--primary-light);
-      box-shadow: 0 4px 12px rgba(215,38,56,0.5);
-      transform: translateY(-2px);
+    .overlay-menu.active {
+      opacity: 1;
+      visibility: visible;
     }
 
-    /* Dropdown menu */
-    nav ul li .dropdown-menu {
-      display: none;
-      flex-direction: column;
+    .overlay-content {
       position: absolute;
-      top: 100%;
-      left: 0;
-      background-color: var(--primary);
-      border-radius: 8px;
-      min-width: 160px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) scale(0.9);
+      background: var(--background);
+      border-radius: 16px;
+      padding: 0;
+      width: 90%;
+      max-width: 400px;
+      max-height: 80vh;
+      overflow-y: auto;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      transition: all 0.3s ease;
     }
 
-    nav ul li:hover .dropdown-menu {
+    .overlay-menu.active .overlay-content {
+      transform: translate(-50%, -50%) scale(1);
+    }
+
+    .overlay-header {
       display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 20px 24px;
+      border-bottom: 1px solid var(--border);
+      background: var(--primary);
+      color: white;
+      border-radius: 16px 16px 0 0;
     }
 
-    nav ul li .dropdown-menu a {
-      padding: 10px 16px;
-      color: #fff;
-      text-decoration: none;
+    .overlay-header h3 {
+      margin: 0;
+      font-size: 1.5rem;
+      font-weight: 600;
+    }
+
+    .close-overlay {
+      background: none;
+      border: none;
+      color: white;
+      font-size: 2rem;
+      cursor: pointer;
+      padding: 4px 8px;
+      border-radius: 4px;
       transition: background 0.2s ease;
     }
 
-    nav ul li .dropdown-menu a:hover {
-      background-color: var(--primary-light);
+    .close-overlay:hover {
+      background: rgba(255,255,255,0.2);
+    }
+
+    .overlay-links {
+      padding: 20px 24px;
+    }
+
+    .overlay-link {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 14px 16px;
+      margin-bottom: 8px;
+      text-decoration: none;
+      color: var(--text);
+      border-radius: 12px;
+      transition: all 0.2s ease;
+      font-weight: 500;
+    }
+
+    .overlay-link:hover {
+      background: var(--surface);
+      transform: translateX(4px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+
+    .link-icon {
+      font-size: 1.2rem;
+      width: 24px;
+      text-align: center;
+    }
+
+    .overlay-section {
+      margin-top: 24px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border);
+    }
+
+    .overlay-section h4 {
+      margin: 0 0 12px 0;
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      font-weight: 600;
     }
 
     /* Responsive: mobile styles */
@@ -384,9 +435,6 @@
 <body>
   <!-- Navbar -->
   <nav>
-
-    <!-- Seasonal decorations removed (post-holiday) -->
-
     <!-- Logo -->
     <div class="logo">
       <a href="{{ url_for('index') }}">
@@ -401,88 +449,160 @@
     </div>
     {% endif %}
 
-    <!-- Mobile nav toggle -->
-    <button id="nav-toggle" class="nav-toggle" aria-label="Toggle navigation" aria-expanded="false">
-      <span></span>
-      <span></span>
-      <span></span>
+    <!-- Hamburger Menu Button -->
+    <button id="hamburger-menu" class="hamburger-menu" aria-label="Toggle menu" aria-expanded="false">
+      <span class="hamburger-line"></span>
+      <span class="hamburger-line"></span>
+      <span class="hamburger-line"></span>
     </button>
-
-    <!-- Menu -->
-    <ul>
-      <li><a href="{{ url_for('browse') }}">Browse</a></li>
-      {% if current_user.is_authenticated %}
-        <li><a href="{{ url_for('switch_school') }}">🏫 Switch School</a></li>
-      {% endif %}
-      <li><a href="{{ url_for('report') }}">Report</a></li>
-
-      <!-- Chat dropdown -->
-      {% if current_user.is_authenticated %}
-        <li>
-          <a href="#">Chat &#9662;</a>
-          <div class="dropdown-menu">
-            <a href="{{ url_for('global_chat') }}">🌐 Global Chat</a>
-            <a href="{{ url_for('admin_chat') }}">👤 Chat with Admin</a>
-            <a href="{{ url_for('ai_chat_page') }}">🤖 Chat with Roman (AI)</a>
-          </div>
-        </li>
-      {% endif %}
-
-      <!-- Admin Tools dropdown (admin only) -->
-      {% if session.get('admin') or (current_user.is_authenticated and current_user.is_admin) %}
-        <li>
-          <a href="#">⚙️ Admin Tools &#9662;</a>
-          <div class="dropdown-menu">
-            <a href="{{ url_for('admin') }}">📊 Dashboard</a>
-            <a href="{{ url_for('admin_chat_users') }}">💬 New Admin Chat</a>
-            <a href="{{ url_for('admin_logout') }}">🚪 Logout</a>
-          </div>
-        </li>
-      {% endif %}
-
-      {% if current_user.is_authenticated %}
-        <li><a href="{{ url_for('settings') }}">⚙️ Settings</a></li>
-        <li><a href="{{ url_for('logout') }}">Logout</a></li>
-      {% else %}
-        <li><a href="{{ url_for('login') }}">Login</a></li>
-        <li><a href="{{ url_for('signup') }}">Signup</a></li>
-      {% endif %}
-    </ul>
   </nav>
 
+  <!-- Overlay Menu -->
+  <div id="overlay-menu" class="overlay-menu">
+    <div class="overlay-content">
+      <div class="overlay-header">
+        <h3>Menu</h3>
+        <button id="close-overlay" class="close-overlay" aria-label="Close menu">&times;</button>
+      </div>
+
+      <div class="overlay-links">
+        <a href="{{ url_for('browse') }}" class="overlay-link">
+          <span class="link-icon">🔍</span>
+          Browse Items
+        </a>
+
+        {% if current_user.is_authenticated %}
+        <a href="{{ url_for('switch_school') }}" class="overlay-link">
+          <span class="link-icon">🏫</span>
+          Switch School
+        </a>
+        {% endif %}
+
+        <a href="{{ url_for('report') }}" class="overlay-link">
+          <span class="link-icon">📝</span>
+          Report Item
+        </a>
+
+        {% if current_user.is_authenticated %}
+        <div class="overlay-section">
+          <h4>Chat</h4>
+          <a href="{{ url_for('global_chat') }}" class="overlay-link">
+            <span class="link-icon">🌐</span>
+            Global Chat
+          </a>
+          <a href="{{ url_for('admin_chat') }}" class="overlay-link">
+            <span class="link-icon">👤</span>
+            Chat with Admin
+          </a>
+          <a href="{{ url_for('ai_chat_page') }}" class="overlay-link">
+            <span class="link-icon">🤖</span>
+            Chat with Roman (AI)
+          </a>
+        </div>
+        {% endif %}
+
+        <!-- Admin Tools (admin only) -->
+        {% if session.get('admin') or (current_user.is_authenticated and current_user.is_admin) %}
+        <div class="overlay-section">
+          <h4>Admin Tools</h4>
+          <a href="{{ url_for('admin') }}" class="overlay-link">
+            <span class="link-icon">📊</span>
+            Dashboard
+          </a>
+          <a href="{{ url_for('admin_chat_users') }}" class="overlay-link">
+            <span class="link-icon">💬</span>
+            New Admin Chat
+          </a>
+          <a href="{{ url_for('admin_logout') }}" class="overlay-link">
+            <span class="link-icon">🚪</span>
+            Admin Logout
+          </a>
+        </div>
+        {% endif %}
+
+        {% if current_user.is_authenticated %}
+        <a href="{{ url_for('settings') }}" class="overlay-link">
+          <span class="link-icon">⚙️</span>
+          Settings
+        </a>
+        <a href="{{ url_for('logout') }}" class="overlay-link">
+          <span class="link-icon">🚪</span>
+          Logout
+        </a>
+        {% else %}
+        <a href="{{ url_for('login') }}" class="overlay-link">
+          <span class="link-icon">🔐</span>
+          Login
+        </a>
+        <a href="{{ url_for('signup') }}" class="overlay-link">
+          <span class="link-icon">📝</span>
+          Signup
+        </a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
   <script>
-    // Mobile nav toggle script (toggling overlay + X animation)
+    // Hamburger Menu Toggle
     (function(){
-      const toggle = document.getElementById('nav-toggle');
-      const menu = document.querySelector('nav ul');
-      if (!toggle || !menu) return;
+      const hamburger = document.getElementById('hamburger-menu');
+      const overlay = document.getElementById('overlay-menu');
+      const closeBtn = document.getElementById('close-overlay');
+
+      if (!hamburger || !overlay) return;
 
       function openMenu() {
-        toggle.setAttribute('aria-expanded', 'true');
-        menu.classList.add('open');
-        document.body.classList.add('mobile-menu-open');
+        hamburger.classList.add('active');
+        hamburger.setAttribute('aria-expanded', 'true');
+        overlay.classList.add('active');
+        document.body.style.overflow = 'hidden'; // Prevent scrolling
       }
 
       function closeMenu() {
-        toggle.setAttribute('aria-expanded', 'false');
-        menu.classList.remove('open');
-        document.body.classList.remove('mobile-menu-open');
+        hamburger.classList.remove('active');
+        hamburger.setAttribute('aria-expanded', 'false');
+        overlay.classList.remove('active');
+        document.body.style.overflow = ''; // Restore scrolling
       }
 
-      toggle.addEventListener('click', function(e){
-        const expanded = this.getAttribute('aria-expanded') === 'true';
-        if (expanded) closeMenu(); else openMenu();
+      // Toggle menu on hamburger click
+      hamburger.addEventListener('click', function(e) {
+        e.stopPropagation();
+        const isOpen = hamburger.classList.contains('active');
+        if (isOpen) {
+          closeMenu();
+        } else {
+          openMenu();
+        }
       });
 
-      // close menu when clicking outside
-      document.addEventListener('click', function(e){
-        if (!menu.classList.contains('open')) return;
-        const isClickInside = menu.contains(e.target) || toggle.contains(e.target);
-        if (!isClickInside) closeMenu();
+      // Close menu on close button click
+      if (closeBtn) {
+        closeBtn.addEventListener('click', closeMenu);
+      }
+
+      // Close menu when clicking on overlay background
+      overlay.addEventListener('click', function(e) {
+        if (e.target === overlay) {
+          closeMenu();
+        }
       });
 
-      // close on escape
-      document.addEventListener('keydown', function(e){ if (e.key === 'Escape') closeMenu(); });
+      // Close menu on escape key
+      document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && overlay.classList.contains('active')) {
+          closeMenu();
+        }
+      });
+
+      // Close menu when clicking on any link (for navigation)
+      const links = overlay.querySelectorAll('.overlay-link');
+      links.forEach(link => {
+        link.addEventListener('click', function() {
+          closeMenu();
+        });
+      });
     })();
   </script>
 
