@@ -30,22 +30,28 @@ AI_KEY = os.getenv("AI_API_KEY")
 print(f"[STARTUP] ADMIN_USERNAME loaded as: '{ADMIN_USERNAME}'")
 print(f"[STARTUP] ADMIN_PASSWORD loaded as: '{ADMIN_PASSWORD}'")
 
+print("[STARTUP] Starting Flask application...")
+
 # Flask app setup
 app = Flask(__name__)
 app.secret_key = os.getenv("SECRET_KEY", "supersecretkey")
+print("[STARTUP] Flask app created")
 
 # Flask-Login
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = "login"
+print("[STARTUP] Flask-Login initialized")
 
 # Uploads
 UPLOAD_FOLDER = "static/uploads"
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
+print("[STARTUP] Upload folder configured")
 
 # Database setup
 db_url = os.environ.get('DATABASE_URL', 'sqlite:///site.db')
+print(f"[STARTUP] Database URL: {db_url[:50]}...")
 if db_url.startswith("postgres://"):
     db_url = db_url.replace("postgres://", "postgresql://", 1)
     if "sslmode" not in db_url:
@@ -53,6 +59,7 @@ if db_url.startswith("postgres://"):
 app.config['SQLALCHEMY_DATABASE_URI'] = db_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db.init_app(app)
+print("[STARTUP] Database configured")
 
 # -------------------
 # Decorators
@@ -116,8 +123,10 @@ def inject_now():
 def run_migration():
     """Run database migrations for production"""
     try:
+        print("[MIGRATION] Starting database migration check...")
         # Check if we're using PostgreSQL
         if db_url.startswith("postgresql://"):
+            print("[MIGRATION] Detected PostgreSQL database")
             import psycopg2
             import urllib.parse
 
@@ -129,6 +138,7 @@ def run_migration():
             host = parsed.hostname
             port = parsed.port or 5432
 
+            print(f"[MIGRATION] Connecting to database: {host}:{port}/{dbname}")
             # Connect to PostgreSQL
             conn = psycopg2.connect(
                 dbname=dbname,
@@ -149,33 +159,46 @@ def run_migration():
             exists = cursor.fetchone()
 
             if not exists:
-                print("Adding created_at column to users table...")
+                print("[MIGRATION] Adding created_at column to users table...")
                 cursor.execute("""
                     ALTER TABLE users
                     ADD COLUMN created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 """)
                 conn.commit()
-                print("Successfully added created_at column.")
+                print("[MIGRATION] Successfully added created_at column.")
             else:
-                print("created_at column already exists.")
+                print("[MIGRATION] created_at column already exists.")
 
             conn.close()
+            print("[MIGRATION] Migration completed successfully")
+        else:
+            print("[MIGRATION] Not PostgreSQL, skipping migration")
     except Exception as e:
-        print(f"Migration error: {e}")
+        print(f"[MIGRATION] Migration error: {e}")
+        # Don't fail the entire app startup for migration issues
+        pass
 
 with app.app_context():
+    print("[STARTUP] Creating app context...")
     run_migration()
+    print("[STARTUP] Running db.create_all()...")
     db.create_all()
+    print("[STARTUP] Database tables created")
 
     # Update existing users to have created_at timestamps
+    print("[STARTUP] Checking for users without created_at...")
     users_without_created_at = User.query.filter(User.created_at.is_(None)).all()
     for user in users_without_created_at:
         user.created_at = datetime.utcnow()
     if users_without_created_at:
         db.session.commit()
-        print(f"Updated {len(users_without_created_at)} users with created_at timestamps.")
+        print(f"[STARTUP] Updated {len(users_without_created_at)} users with created_at timestamps.")
 
+    print("[STARTUP] Creating/checking admin user...")
     get_or_create_admin()
+    print("[STARTUP] Admin user ready")
+
+print("[STARTUP] Flask app initialization complete!")
 
 # Home
 @app.route("/")
@@ -827,4 +850,6 @@ def admin_send_to_user(user_id):
 
 # Run
 if __name__ == "__main__":
-    app.run(debug=True)
+    # For production deployment (like Render)
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port, debug=False)
