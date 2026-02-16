@@ -185,6 +185,14 @@ with app.app_context():
     db.create_all()
     print("[STARTUP] Database tables created")
 
+    # Run school migration
+    print("[STARTUP] Running school migration...")
+    try:
+        from migrate_add_school import run_school_migration
+        run_school_migration()
+    except Exception as e:
+        print(f"[STARTUP] School migration error: {e}")
+
     # Update existing users to have created_at timestamps
     print("[STARTUP] Checking for users without created_at...")
     users_without_created_at = User.query.filter(User.created_at.is_(None)).all()
@@ -203,14 +211,36 @@ print("[STARTUP] Flask app initialization complete!")
 # Home
 @app.route("/")
 def index():
-    return render_template("index.html")
+    # Check if user has selected a school
+    selected_school = session.get('school')
+    if not selected_school:
+        return redirect(url_for('select_school'))
+    return render_template("index.html", selected_school=selected_school)
+
+# School selection
+@app.route("/select-school")
+def select_school():
+    return render_template("select_school.html")
+
+@app.route("/set-school", methods=['POST'])
+def set_school():
+    school = request.form.get('school')
+    if school:
+        session['school'] = school
+        session.permanent = True  # Make session persistent
+    return redirect(url_for('index'))
  
 # Browse items
 @app.route("/browse")
 def browse():
+    # Check if user has selected a school
+    selected_school = session.get('school')
+    if not selected_school:
+        return redirect(url_for('select_school'))
+
     search_query = request.args.get("q", "").strip()
-    items = Item.query.filter_by(approved=True).all()
-    
+    items = Item.query.filter_by(approved=True, school=selected_school).all()
+
     if search_query:
         search_query_lower = search_query.lower()
         items = [
@@ -219,8 +249,8 @@ def browse():
             or search_query_lower in item.description.lower()
             or search_query_lower in item.location.lower()
         ]
-    
-    return render_template("browse.html", items=items, search_query=search_query)
+
+    return render_template("browse.html", items=items, search_query=search_query, selected_school=selected_school)
 
 
 # AI Chat page (display)
@@ -313,10 +343,14 @@ No extra text outside JSON.
         action_data = json.loads(reply)
 
         if action_data.get("action") == "create_lost_item":
+            # Get user's school from session
+            user_school = session.get('school', 'South Forsyth')
+
             new_item = Item(
                 name=action_data["name"],
                 description=action_data["description"],
                 location=action_data["location"],
+                school=user_school,
                 status="Lost",
                 approved=False,
                 owner_id=current_user.id
@@ -368,12 +402,13 @@ def signup():
         name = request.form["name"]
         email = request.form["email"]
         password = request.form["password"]
+        school = request.form["school"]
 
         if User.query.filter_by(email=email).first():
             flash("Email already exists!", "danger")
             return redirect(url_for("signup"))
 
-        new_user = User(name=name, email=email)
+        new_user = User(name=name, email=email, school=school)
         new_user.set_password(password)
         db.session.add(new_user)
         db.session.commit()
@@ -665,7 +700,8 @@ def admin():
         name = request.form["name"]
         description = request.form["description"]
         location = request.form.get("location", "")
-        item = Item(name=name, description=description, location=location, status='Found', approved=True)
+        school = request.form.get("school", "South Forsyth")  # Default fallback
+        item = Item(name=name, description=description, location=location, school=school, status='Found', approved=True)
         db.session.add(item)
         db.session.commit()
         session['admin_action_msg'] = 'Item added'

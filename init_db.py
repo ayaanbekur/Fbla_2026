@@ -16,6 +16,7 @@ class User(UserMixin, db.Model):
     email = db.Column(db.String(120), unique=True, nullable=False)
     password_hash = db.Column(db.String(200), nullable=False)
     is_admin = db.Column(db.Boolean, default=False, nullable=False)
+    school = db.Column(db.String(50), nullable=False)  # Forsyth County high schools
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
 
     sent_messages = db.relationship("Message", foreign_keys="Message.sender_id", backref="sender_user", lazy=True)
@@ -40,6 +41,7 @@ class Item(db.Model):
     name = db.Column(db.String(100), nullable=False)
     description = db.Column(db.Text, nullable=False)
     location = db.Column(db.String(100))
+    school = db.Column(db.String(50), nullable=False)  # Forsyth County high schools
     status = db.Column(db.String(50), default='Found')
     approved = db.Column(db.Boolean, default=False)
     image_filename = db.Column(db.String(100))
