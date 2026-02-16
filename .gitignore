@@ -3,3 +3,6 @@ env_backup_for_google_doc.txt
 venv/
 __pycache__/
 *.pyc
+*.db
+instance/
+site.db
