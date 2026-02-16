@@ -50,7 +50,7 @@ app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 print("[STARTUP] Upload folder configured")
 
 # Database setup
-db_url = os.environ.get('DATABASE_URL', 'sqlite:///site.db')
+db_url = os.environ.get('DATABASE_URL', f'sqlite:///{os.path.join(os.getcwd(), "site.db")}')
 print(f"[STARTUP] Database URL: {db_url[:50]}...")
 if db_url.startswith("postgres://"):
     db_url = db_url.replace("postgres://", "postgresql://", 1)
@@ -89,7 +89,8 @@ def get_or_create_admin():
         admin = User(
             name="Admin",
             email=ADMIN_USERNAME,
-            is_admin=True
+            is_admin=True,
+            school="All Schools"  # Admin can see all schools
         )
         admin.set_password(ADMIN_PASSWORD)
         db.session.add(admin)
@@ -97,6 +98,9 @@ def get_or_create_admin():
         # FORCE admin privileges
         admin.is_admin = True
         admin.set_password(ADMIN_PASSWORD)
+        # Ensure admin has a school set
+        if not admin.school:
+            admin.school = "All Schools"
 
     # Set created_at if not set
     if admin.created_at is None:
@@ -229,6 +233,26 @@ def set_school():
         session['school'] = school
         session.permanent = True  # Make session persistent
     return redirect(url_for('index'))
+
+# Switch school view
+@app.route("/switch_school", methods=["GET", "POST"])
+@login_required
+def switch_school():
+    if request.method == "POST":
+        school = request.form.get("school")
+        if school:
+            session['school'] = school
+            flash(f"Now viewing items from {school}", "success")
+            return redirect(url_for('browse', school=school))
+    
+    # Get all available schools
+    schools = [
+        "South Forsyth", "North Forsyth", "West Forsyth", "East Forsyth",
+        "Forsyth Central", "Lambert", "Denmark", "Alliance"
+    ]
+    
+    current_school = session.get('school', 'South Forsyth')
+    return render_template("switch_school.html", schools=schools, current_school=current_school)
  
 # Browse items
 @app.route("/browse")
@@ -238,8 +262,11 @@ def browse():
     if not selected_school:
         return redirect(url_for('select_school'))
 
+    # Allow viewing items from any school (admins see all, users can switch)
+    view_school = request.args.get('school', selected_school)
+
     search_query = request.args.get("q", "").strip()
-    items = Item.query.filter_by(approved=True, school=selected_school).all()
+    items = Item.query.filter_by(approved=True, school=view_school).all()
 
     if search_query:
         search_query_lower = search_query.lower()
@@ -250,7 +277,7 @@ def browse():
             or search_query_lower in item.location.lower()
         ]
 
-    return render_template("browse.html", items=items, search_query=search_query, selected_school=selected_school)
+    return render_template("browse.html", items=items, search_query=search_query, selected_school=selected_school, view_school=view_school)
 
 
 # AI Chat page (display)
@@ -664,11 +691,15 @@ def admin_view_chat(user_id):
 @login_required
 def report():
     if request.method == "POST":
+        # Get user's school from session
+        user_school = session.get('school', 'South Forsyth')
+        
         item = Item(
             name=request.form["name"],
             description=request.form["description"],
             location=request.form.get("location"),
             status=request.form["status"],
+            school=user_school,
             owner_id=current_user.id,
             approved=False
         )

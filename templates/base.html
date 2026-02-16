@@ -411,6 +411,9 @@
     <!-- Menu -->
     <ul>
       <li><a href="{{ url_for('browse') }}">Browse</a></li>
+      {% if current_user.is_authenticated %}
+        <li><a href="{{ url_for('switch_school') }}">🏫 Switch School</a></li>
+      {% endif %}
       <li><a href="{{ url_for('report') }}">Report</a></li>
 
       <!-- Chat dropdown -->

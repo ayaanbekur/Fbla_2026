@@ -5,6 +5,21 @@
   <h2>Browse Found Items</h2>
   <p>Here you can see all items that have been reported. Click "Claim" to request an item if it belongs to you.</p>
 
+  <!-- School selector -->
+  <div class="school-selector">
+    <span class="school-label">Viewing items from:</span>
+    <select id="school-select" onchange="switchSchool(this.value)">
+      <option value="South Forsyth" {% if view_school == 'South Forsyth' %}selected{% endif %}>South Forsyth</option>
+      <option value="North Forsyth" {% if view_school == 'North Forsyth' %}selected{% endif %}>North Forsyth</option>
+      <option value="West Forsyth" {% if view_school == 'West Forsyth' %}selected{% endif %}>West Forsyth</option>
+      <option value="East Forsyth" {% if view_school == 'East Forsyth' %}selected{% endif %}>East Forsyth</option>
+      <option value="Forsyth Central" {% if view_school == 'Forsyth Central' %}selected{% endif %}>Forsyth Central</option>
+      <option value="Lambert" {% if view_school == 'Lambert' %}selected{% endif %}>Lambert</option>
+      <option value="Denmark" {% if view_school == 'Denmark' %}selected{% endif %}>Denmark</option>
+      <option value="Alliance" {% if view_school == 'Alliance' %}selected{% endif %}>Alliance</option>
+    </select>
+  </div>
+
   <div class="search-container">
     <form method="GET" action="{{ url_for('browse') }}" class="search-form">
       <div class="search-input-wrapper">
@@ -248,11 +263,51 @@ h1, h2, h3, .logo {
   background-color: #9f2f2f;
 }
 
+/* School selector */
+.school-selector {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 2rem;
+  padding: 1rem;
+  background: var(--surface);
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.school-label {
+  font-weight: 600;
+  color: var(--text);
+}
+
+#school-select {
+  padding: 0.5rem 1rem;
+  border: 2px solid var(--border);
+  border-radius: 8px;
+  background: var(--background);
+  color: var(--text);
+  font-size: 1rem;
+  cursor: pointer;
+  transition: border-color 0.3s ease;
+}
+
+#school-select:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+
 @keyframes fadeIn {
   0% { opacity: 0; transform: translateY(20px);}
   100% { opacity: 1; transform: translateY(0);}
 }
 </style>
 
+<script>
+function switchSchool(school) {
+  const url = new URL(window.location);
+  url.searchParams.set('school', school);
+  window.location.href = url.toString();
+}
+</script>
 
 {% endblock %}

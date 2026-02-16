@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+
+{% block title %}Switch School - Lost & Found{% endblock %}
+
+{% block content %}
+<div class="page-container">
+  <h2>Switch School View</h2>
+  <p>Select which school's items you want to view. You can switch between schools at any time.</p>
+
+  <div class="school-selection">
+    <div class="school-card">
+      <h3>Choose Your School</h3>
+      <p>Currently viewing: <strong>{{ current_school }}</strong></p>
+
+      <form method="POST" action="{{ url_for('switch_school') }}">
+        <div class="school-grid">
+          {% for school in schools %}
+            <div class="school-option{% if school == current_school %} selected{% endif %}" data-school="{{ school }}">
+              {{ school }}
+            </div>
+          {% endfor %}
+        </div>
+
+        <input type="hidden" name="school" id="selected-school" required>
+
+        <div style="margin-top: 2rem; text-align: center;">
+          <button type="submit" class="cta-button" style="padding: 12px 24px; font-size: 1.1rem;">
+            Switch to Selected School
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<style>
+.school-selection {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.school-card {
+  background: var(--surface);
+  border-radius: 16px;
+  padding: 2rem;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.15);
+  text-align: center;
+}
+
+.school-card h3 {
+  color: var(--primary);
+  margin-bottom: 1rem;
+  font-size: 1.5rem;
+}
+
+.school-card p {
+  margin-bottom: 2rem;
+  color: var(--text-secondary);
+}
+
+.school-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.school-option {
+  background: var(--background);
+  border: 2px solid var(--border);
+  border-radius: 12px;
+  padding: 1rem;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.school-option:hover {
+  border-color: var(--primary);
+  background: var(--primary-light);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(200,16,46,0.2);
+}
+
+.school-option.selected {
+  border-color: var(--primary);
+  background: var(--primary);
+  color: white;
+  box-shadow: 0 4px 12px rgba(200,16,46,0.3);
+}
+
+.cta-button {
+  background: var(--primary);
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-decoration: none;
+  display: inline-block;
+}
+
+.cta-button:hover {
+  background: var(--primary-dark);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(200,16,46,0.4);
+}
+
+@media (max-width: 768px) {
+  .school-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .school-card {
+    padding: 1.5rem;
+  }
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const schoolOptions = document.querySelectorAll('.school-option');
+  const selectedSchoolInput = document.getElementById('selected-school');
+
+  schoolOptions.forEach(option => {
+    option.addEventListener('click', function() {
+      // Remove selected class from all options
+      schoolOptions.forEach(opt => opt.classList.remove('selected'));
+
+      // Add selected class to clicked option
+      this.classList.add('selected');
+
+      // Set the hidden input value
+      selectedSchoolInput.value = this.dataset.school;
+    });
+  });
+});
+</script>
+
+{% endblock %}
