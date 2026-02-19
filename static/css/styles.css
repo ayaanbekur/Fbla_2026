@@ -98,6 +98,185 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* =====================
+   ANIMATIONS & KEYFRAMES
+===================== */
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes bounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+@keyframes gradientShift {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -1000px 0;
+  }
+  100% {
+    background-position: 1000px 0;
+  }
+}
+
+@keyframes glow {
+  0%, 100% {
+    box-shadow: 0 0 20px rgba(200, 16, 46, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 30px rgba(200, 16, 46, 0.6);
+  }
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes expandHeight {
+  from {
+    max-height: 0;
+    opacity: 0;
+  }
+  to {
+    max-height: 1000px;
+    opacity: 1;
+  }
+}
+
+@keyframes rotateIn {
+  from {
+    opacity: 0;
+    transform: rotate(-10deg) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: rotate(0deg) scale(1);
+  }
+}
+
+@keyframes wiggle {
+  0%, 100% {
+    transform: rotate(0deg);
+  }
+  25% {
+    transform: rotate(-2deg);
+  }
+  75% {
+    transform: rotate(2deg);
+  }
+}
+
+@keyframes slideDown {
+  from {
+    max-height: 0;
+    opacity: 0;
+  }
+  to {
+    max-height: 500px;
+    opacity: 1;
+  }
+}
+
+@keyframes colorChange {
+  0%, 100% {
+    color: var(--primary);
+  }
+  50% {
+    color: var(--accent);
+  }
+}
+
 h1, h2, h3, h4, h5, h6, .logo {
   font-family: 'Playfair Display', serif;
   letter-spacing: -0.5px;
@@ -500,4 +679,367 @@ textarea {
   gap: 1rem;
   flex-wrap: wrap;
   justify-content: center;
+}
+
+/* =====================
+   INTERACTIVE ANIMATIONS
+===================== */
+
+/* Buttons - Interactive Effects */
+button, .cta-button, [type="submit"], a.button {
+  transition: var(--transition);
+  position: relative;
+  overflow: hidden;
+}
+
+button:hover, .cta-button:hover, [type="submit"]:hover, a.button:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 24px rgba(200, 16, 46, 0.25);
+  animation: none;
+}
+
+button:active, .cta-button:active, [type="submit"]:active, a.button:active {
+  transform: translateY(-1px);
+}
+
+/* Button ripple effect */
+button::after, .cta-button::after, [type="submit"]::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.3);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+button:active::after, .cta-button:active::after, [type="submit"]:active::after {
+  animation: ripple 0.6s ease-out;
+}
+
+@keyframes ripple {
+  from {
+    width: 0;
+    height: 0;
+    opacity: 1;
+  }
+  to {
+    width: 300px;
+    height: 300px;
+    opacity: 0;
+  }
+}
+
+/* Card animations */
+.card, .item-card, .claim-container, .form-container {
+  animation: slideInUp 0.5s ease 0.1s backwards;
+  transition: var(--transition);
+}
+
+.card:hover, .item-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+}
+
+.item-card {
+  animation-delay: 0.2s;
+}
+
+.item-card:nth-child(2) {
+  animation-delay: 0.3s;
+}
+
+.item-card:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+.item-card:nth-child(n+4) {
+  animation-delay: 0.5s;
+}
+
+/* Form elements - Interactive */
+input, textarea, select {
+  transition: var(--transition);
+  border: 1.5px solid transparent;
+}
+
+input:focus, textarea:focus, select:focus {
+  animation: scaleIn 0.3s ease;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(10, 135, 84, 0.1);
+}
+
+input::placeholder, textarea::placeholder {
+  transition: color 0.3s ease;
+}
+
+input:focus::placeholder, textarea:focus::placeholder {
+  color: transparent;
+}
+
+/* Navigation animations */
+nav {
+  animation: slideInDown 0.5s ease;
+}
+
+.nav-link, .overlay-link {
+  position: relative;
+  transition: var(--transition);
+}
+
+.nav-link::after, .overlay-link::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background: var(--accent);
+  transition: width 0.3s ease;
+}
+
+.nav-link:hover::after, .overlay-link:hover::after {
+  width: 100%;
+}
+
+.overlay-link:hover {
+  background: rgba(10, 135, 84, 0.1);
+  transform: translateX(4px);
+}
+
+/* Flash message animations */
+.alert, .flash-message {
+  animation: slideInDown 0.4s ease;
+}
+
+.alert-success {
+  animation: slideInDown 0.4s ease, pulse 2s ease-in-out 2.5s;
+}
+
+/* Hero section */
+.hero {
+  animation: fadeIn 0.8s ease;
+}
+
+.hero h1 {
+  animation: slideInDown 0.6s ease 0.2s backwards;
+}
+
+.hero p {
+  animation: slideInUp 0.6s ease 0.4s backwards;
+}
+
+.hero .cta-button {
+  animation: slideInUp 0.6s ease 0.6s backwards;
+}
+
+/* Fade-in animations */
+.fade-in {
+  animation: fadeIn 0.6s ease;
+}
+
+.fade-in.delay-0 { animation-delay: 0s; }
+.fade-in.delay-1 { animation-delay: 0.2s; }
+.fade-in.delay-2 { animation-delay: 0.4s; }
+.fade-in.delay-3 { animation-delay: 0.6s; }
+.fade-in.delay-4 { animation-delay: 0.8s; }
+
+/* Stagger animation for lists */
+.stagger > * {
+  animation: slideInUp 0.5s ease backwards;
+}
+
+.stagger > *:nth-child(1) { animation-delay: 0.1s; }
+.stagger > *:nth-child(2) { animation-delay: 0.2s; }
+.stagger > *:nth-child(3) { animation-delay: 0.3s; }
+.stagger > *:nth-child(4) { animation-delay: 0.4s; }
+.stagger > *:nth-child(5) { animation-delay: 0.5s; }
+.stagger > *:nth-child(n+6) { animation-delay: 0.6s; }
+
+/* Smooth page transitions */
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  animation: fadeIn 0.5s ease;
+}
+
+/* Loading spinner */
+.spinner {
+  border: 4px solid rgba(10, 135, 84, 0.1);
+  border-top: 4px solid var(--accent);
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  animation: spin 1s linear infinite;
+  margin: 20px auto;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Glow effects for important elements */
+.glow, .highlight, .featured {
+  animation: glow 3s ease-in-out infinite;
+}
+
+/* Interactive labels and badges */
+.badge, .status-badge, .label {
+  animation: scaleIn 0.4s ease;
+  transition: var(--transition);
+}
+
+.badge:hover {
+  transform: scale(1.05);
+}
+
+/* Input validation animations */
+input:valid {
+  border-color: #27ae60;
+  animation: none;
+}
+
+input:invalid:not(:placeholder-shown) {
+  border-color: #e74c3c;
+  animation: wiggle 0.4s ease;
+}
+
+/* Success checkmark animation */
+.success-check {
+  animation: rotateIn 0.6s ease;
+}
+
+/* Expand/Collapse animations */
+.collapsible {
+  transition: max-height 0.3s ease, opacity 0.3s ease;
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
+}
+
+.collapsible.active {
+  animation: slideDown 0.4s ease forwards;
+}
+
+/* Tooltip animations */
+.tooltip {
+  animation: slideInUp 0.3s ease;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+
+.tooltip.show {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* Modal/Dialog animations */
+.modal, .dialog {
+  animation: slideInUp 0.4s ease;
+}
+
+.modal-overlay {
+  animation: fadeIn 0.3s ease;
+}
+
+/* Parallax scrolling effect */
+.parallax {
+  background-attachment: fixed;
+  background-size: cover;
+  background-position: center;
+}
+
+/* Smooth color transitions */
+*[data-theme] {
+  transition: var(--transition) background-color, var(--transition) color, var(--transition) border-color;
+}
+
+/* Active state animations */
+.active, .active-link {
+  animation: colorChange 0.4s ease;
+}
+
+/* Floating animation for idle elements */
+.float-animation {
+  animation: float 3s ease-in-out infinite;
+}
+
+/* Page loading bar */
+.progress-bar {
+  animation: shimmer 2s infinite;
+  background: linear-gradient(90deg, var(--accent), rgba(10, 135, 84, 0.3), var(--accent));
+  background-size: 200% 100%;
+}
+
+/* Transform animations */
+.transform-enter {
+  animation: slideInLeft 0.5s ease;
+}
+
+.transform-exit {
+  animation: slideInRight 0.5s ease reverse;
+}
+
+/* Smooth dropdown animations */
+select {
+  appearance: none;
+  transition: var(--transition);
+}
+
+select:focus {
+  box-shadow: 0 0 0 3px rgba(10, 135, 84, 0.1);
+}
+
+/* Image animations */
+img {
+  transition: var(--transition);
+}
+
+img:hover {
+  transform: scale(1.02);
+  opacity: 0.9;
+}
+
+.img-animated {
+  animation: fadeIn 0.6s ease;
+}
+
+/* Text animations */
+h1, h2, h3, h4, h5, h6 {
+  animation: slideInDown 0.5s ease;
+}
+
+a {
+  transition: var(--transition);
+}
+
+a:hover {
+  color: var(--accent);
+}
+
+/* Responsive animation adjustments */
+@media (max-width: 768px) {
+  .card, .item-card {
+    animation-delay: 0s;
+  }
+  
+  button:hover, .cta-button:hover {
+    transform: translateY(-2px);
+  }
+}
+
+/* Reduces motion for users who prefer it */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

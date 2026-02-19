@@ -873,26 +873,32 @@ def claim(item_id):
             return redirect(url_for("claim", item_id=item_id))
 
         # If item has a secret detail, verify the answer
-        if item.secret_detail and not secret_detail_answer:
+        item_secret = getattr(item, 'secret_detail', None)
+        if item_secret and not secret_detail_answer:
             flash("You must provide the secret detail to claim this item.", "danger")
             return redirect(url_for("claim", item_id=item_id))
 
         # Create claim request
-        new_claim = ClaimRequest(
-            item_id=item_id,
-            claimant_name=claimant_name,
-            claimant_email=claimant_email,
-            claim_reason=claim_reason,
-            identifiable_features=identifiable_features,
-            secret_detail_answer=secret_detail_answer,
-            status="pending"
-        )
+        try:
+            new_claim = ClaimRequest(
+                item_id=item_id,
+                claimant_name=claimant_name,
+                claimant_email=claimant_email,
+                claim_reason=claim_reason,
+                identifiable_features=identifiable_features,
+                secret_detail_answer=secret_detail_answer,
+                status="pending"
+            )
 
-        db.session.add(new_claim)
-        db.session.commit()
+            db.session.add(new_claim)
+            db.session.commit()
 
-        flash(f"Claim request submitted! We'll review your claim and verify your details. You'll receive an email update at {claimant_email}.", "success")
-        return redirect(url_for("browse"))
+            flash(f"Claim request submitted! We'll review your claim and verify your details. You'll receive an email update at {claimant_email}.", "success")
+            return redirect(url_for("browse"))
+        except Exception as e:
+            db.session.rollback()
+            flash(f"Error submitting claim: {str(e)}", "danger")
+            return redirect(url_for("claim", item_id=item_id))
 
     # Get all claims for this item
     claims = ClaimRequest.query.filter_by(item_id=item_id).all()

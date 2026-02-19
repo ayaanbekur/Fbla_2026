@@ -10,7 +10,7 @@
     </div>
 
     <form method="POST" enctype="multipart/form-data" class="post-form">
-        <div class="form-section">
+        <div class="form-section fade-in delay-0">
             <h3>Basic Information</h3>
             
             <div class="form-group">
@@ -40,9 +40,9 @@
             </div>
         </div>
 
-        <div class="form-section secret-section">
-            <h3>🔐 Secret Detail (For Verification)</h3>
-            <p class="secret-explanation">
+        <div class="form-section secret-section glow fade-in delay-1">
+            <h3 class="float-animation">🔐 Secret Detail (For Verification)</h3>
+            <p class="secret-explanation shimmer">
                 When someone claims this item, they must provide this detail to prove it's theirs. 
                 Choose something only the real owner would know!
             </p>
@@ -62,7 +62,7 @@
             </div>
         </div>
 
-        <div class="form-section">
+        <div class="form-section fade-in delay-2">
             <h3>Image (Optional)</h3>
             <div class="form-group">
                 <label for="image">Upload Photo</label>
@@ -71,7 +71,7 @@
             </div>
         </div>
 
-        <div class="form-section">
+        <div class="form-section fade-in delay-3">
             <h3>Your Contact Information</h3>
             <div class="form-group">
                 <label for="email">Email Address *</label>
@@ -80,7 +80,7 @@
             </div>
         </div>
 
-        <div class="form-actions">
+        <div class="form-actions fade-in delay-4">
             <button type="submit" class="cta-button submit-btn">📤 Post Found Item</button>
             <a href="{{ url_for('browse') }}" class="cancel-btn">Cancel</a>
         </div>

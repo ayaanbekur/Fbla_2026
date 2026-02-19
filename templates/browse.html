@@ -41,11 +41,11 @@
     </form>
   </div>
 
-  <div class="card-grid">
+  <div class="card-grid stagger">
     {% for item in items %}
-      <div class="item-card">
+      <div class="item-card fade-in">
         {% if item['image'] %}
-          <img src="{{ url_for('static', filename='uploads/' + item['image']) }}" alt="{{ item['name'] }}">
+          <img src="{{ url_for('static', filename='uploads/' + item['image']) }}" alt="{{ item['name'] }}" class="img-animated">
         {% endif %}
 
         <h3>{{ item['name'] }}</h3>
