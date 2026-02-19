@@ -735,7 +735,7 @@ button:active::after, .cta-button:active::after, [type="submit"]:active::after {
 
 /* Card animations */
 .card, .item-card, .claim-container, .form-container {
-  animation: slideInUp 0.5s ease 0.1s backwards;
+  animation: slideInUp 0.5s ease 0.1s both;
   transition: var(--transition);
 }
 
@@ -812,33 +812,33 @@ nav {
 
 /* Flash message animations */
 .alert, .flash-message {
-  animation: slideInDown 0.4s ease;
+  animation: slideInDown 0.4s ease forwards;
 }
 
 .alert-success {
-  animation: slideInDown 0.4s ease, pulse 2s ease-in-out 2.5s;
+  animation: slideInDown 0.4s ease forwards, pulse 2s ease-in-out 2.5s;
 }
 
 /* Hero section */
 .hero {
-  animation: fadeIn 0.8s ease;
+  animation: fadeIn 0.8s ease forwards;
 }
 
 .hero h1 {
-  animation: slideInDown 0.6s ease 0.2s backwards;
+  animation: slideInDown 0.6s ease 0.2s both;
 }
 
 .hero p {
-  animation: slideInUp 0.6s ease 0.4s backwards;
+  animation: slideInUp 0.6s ease 0.4s both;
 }
 
 .hero .cta-button {
-  animation: slideInUp 0.6s ease 0.6s backwards;
+  animation: slideInUp 0.6s ease 0.6s both;
 }
 
 /* Fade-in animations */
 .fade-in {
-  animation: fadeIn 0.6s ease;
+  animation: fadeIn 0.6s ease forwards;
 }
 
 .fade-in.delay-0 { animation-delay: 0s; }
@@ -849,7 +849,7 @@ nav {
 
 /* Stagger animation for lists */
 .stagger > * {
-  animation: slideInUp 0.5s ease backwards;
+  animation: slideInUp 0.5s ease forwards;
 }
 
 .stagger > *:nth-child(1) { animation-delay: 0.1s; }
