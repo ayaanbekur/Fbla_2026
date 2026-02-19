@@ -6,19 +6,19 @@
         <h2>🔍 Claim This Item</h2>
         
         <div class="item-details-box">
-            {% if item.get('image') %}
+            {% if item.image %}
                 <div class="item-image-section">
-                    <img src="{{ url_for('static', filename='uploads/' + item.get('image')) }}" alt="{{ item.get('name') }}" class="item-image">
+                    <img src="{{ url_for('static', filename='uploads/' + item.image) }}" alt="{{ item.name }}" class="item-image">
                 </div>
             {% endif %}
             
             <div class="item-info">
-                <h3>{{ item['name'] }}</h3>
-                <p><strong>Description:</strong> {{ item['description'] }}</p>
-                {% if item.get('location') %}
-                    <p><strong>Location Found:</strong> {{ item['location'] }}</p>
+                <h3>{{ item.name }}</h3>
+                <p><strong>Description:</strong> {{ item.description }}</p>
+                {% if item.location %}
+                    <p><strong>Location Found:</strong> {{ item.location }}</p>
                 {% endif %}
-                <p><strong>Status:</strong> {{ item['status'] }}</p>
+                <p><strong>Status:</strong> {{ item.status }}</p>
             </div>
         </div>
 
