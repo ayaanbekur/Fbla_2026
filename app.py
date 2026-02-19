@@ -275,14 +275,6 @@ with app.app_context():
     db.create_all()
     print("[STARTUP] Database tables created")
 
-    # Run school migration
-    print("[STARTUP] Running school migration...")
-    try:
-        from migrate_add_school import run_school_migration
-        run_school_migration()
-    except Exception as e:
-        print(f"[STARTUP] School migration error: {e}")
-
     # Update existing users to have created_at timestamps
     print("[STARTUP] Checking for users without created_at...")
     users_without_created_at = User.query.filter(User.created_at.is_(None)).all()
