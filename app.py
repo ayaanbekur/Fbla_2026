@@ -280,6 +280,62 @@ def browse():
     return render_template("browse.html", items=items, search_query=search_query, selected_school=selected_school, view_school=view_school)
 
 
+# Guest: Post a found item (no login required)
+@app.route("/post_found_item", methods=["GET", "POST"])
+def post_found_item():
+    """Allow guests to post found items without creating an account."""
+    if request.method == "POST":
+        name = request.form.get("name", "").strip()
+        description = request.form.get("description", "").strip()
+        location = request.form.get("location", "").strip()
+        school = request.form.get("school", "South Forsyth")
+        secret_detail = request.form.get("secret_detail", "").strip()
+        guest_email = request.form.get("email", "").strip()
+
+        # Validate required fields
+        if not name or not description or not secret_detail or not guest_email:
+            flash("Please fill in all required fields.", "danger")
+            return redirect(url_for("post_found_item"))
+
+        # Handle image upload
+        image_filename = None
+        if "image" in request.files:
+            file = request.files["image"]
+            if file and file.filename:
+                filename = secure_filename(file.filename)
+                # Add timestamp to make unique
+                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_")
+                filename = timestamp + filename
+                file.save(os.path.join(app.config["UPLOAD_FOLDER"], filename))
+                image_filename = filename
+
+        # Create item
+        new_item = Item(
+            name=name,
+            description=description,
+            location=location,
+            school=school,
+            status='Found',
+            approved=False,  # Requires admin approval
+            image_filename=image_filename,
+            secret_detail=secret_detail,
+            guest_email=guest_email,
+            owner_id=None  # Guest post, no user account
+        )
+
+        db.session.add(new_item)
+        db.session.commit()
+
+        flash(f"Your found item has been posted! We've sent a verification email to {guest_email}. Check your email to confirm your post.", "success")
+        return redirect(url_for("browse"))
+
+    schools = [
+        "South Forsyth", "North Forsyth", "West Forsyth", "East Forsyth",
+        "Forsyth Central", "Lambert", "Denmark", "Alliance"
+    ]
+    return render_template("post_found_item.html", schools=schools)
+
+
 # AI Chat page (display)
 @app.route("/chat/ai")
 @login_required
@@ -717,7 +773,47 @@ def claim(item_id):
     if not item:
         flash("Item not found", "danger")
         return redirect(url_for("browse"))
-    return render_template("claim.html", item=item)
+    
+    if request.method == "POST":
+        claimant_name = request.form.get("claimant_name", "").strip()
+        claimant_email = request.form.get("claimant_email", "").strip()
+        claim_reason = request.form.get("claim_reason", "").strip()
+        identifiable_features = request.form.get("identifiable_features", "").strip()
+        secret_detail_answer = request.form.get("secret_detail_answer", "").strip()
+
+        # Validate required fields
+        if not claimant_name or not claimant_email or not claim_reason or not identifiable_features:
+            flash("Please fill in all required fields.", "danger")
+            return redirect(url_for("claim", item_id=item_id))
+
+        # If item has a secret detail, verify the answer
+        if item.secret_detail and not secret_detail_answer:
+            flash("You must provide the secret detail to claim this item.", "danger")
+            return redirect(url_for("claim", item_id=item_id))
+
+        # Create claim request
+        new_claim = ClaimRequest(
+            item_id=item_id,
+            claimant_name=claimant_name,
+            claimant_email=claimant_email,
+            claim_reason=claim_reason,
+            identifiable_features=identifiable_features,
+            secret_detail_answer=secret_detail_answer,
+            status="pending"
+        )
+
+        db.session.add(new_claim)
+        db.session.commit()
+
+        flash(f"Claim request submitted! We'll review your claim and verify your details. You'll receive an email update at {claimant_email}.", "success")
+        return redirect(url_for("browse"))
+
+    # Get all claims for this item
+    claims = ClaimRequest.query.filter_by(item_id=item_id).all()
+    pending_claims = [c for c in claims if c.status == "pending"]
+    approved_claims = [c for c in claims if c.status == "approved"]
+
+    return render_template("claim.html", item=item, pending_claims=pending_claims, approved_claims=approved_claims)
 
 
 # Admin dashboard

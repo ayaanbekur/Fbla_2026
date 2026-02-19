@@ -45,8 +45,10 @@ class Item(db.Model):
     status = db.Column(db.String(50), default='Found')
     approved = db.Column(db.Boolean, default=False)
     image_filename = db.Column(db.String(100))
-    owner_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+    owner_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    guest_email = db.Column(db.String(120), nullable=True)  # Email for guest posters
     claimant = db.Column(db.String(100))
+    secret_detail = db.Column(db.Text, nullable=True)  # The detail owner hides (e.g., engraving, lock screen photo)
 
 
 # --------------------------
@@ -94,5 +96,9 @@ class ClaimRequest(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     item_id = db.Column(db.Integer, db.ForeignKey("item.id"))
     claimant_name = db.Column(db.String(100))
+    claimant_email = db.Column(db.String(120), nullable=True)  # Email for guest claimants
     status = db.Column(db.String(20), default="pending")
+    claim_reason = db.Column(db.Text, nullable=True)  # Why they think it's theirs
+    identifiable_features = db.Column(db.Text, nullable=True)  # Features that prove ownership
+    secret_detail_answer = db.Column(db.Text, nullable=True)  # Their answer to the secret detail
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)

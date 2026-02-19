@@ -476,6 +476,11 @@
           Browse Items
         </a>
 
+        <a href="{{ url_for('post_found_item') }}" class="overlay-link">
+          <span class="link-icon">📦</span>
+          Post Found Item
+        </a>
+
         {% if current_user.is_authenticated %}
         <a href="{{ url_for('switch_school') }}" class="overlay-link">
           <span class="link-icon">🏫</span>
