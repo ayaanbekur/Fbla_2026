@@ -650,7 +650,6 @@ def settings():
     return render_template("settings.html")
 
 @app.route("/admin_login", methods=["GET", "POST"])
-@admin_required
 def admin_login():
     if request.method == "POST":
         email = request.form.get("email", "").strip()
@@ -747,6 +746,8 @@ def admin_chat():
     return render_template("chat.html", messages=messages, chat_type="Admin")
 
 
+@app.route("/admin/chat_manage", methods=["GET"])
+@admin_required
 def admin_chat_manage():
     """Admin view of all user conversations with admin"""
     admin = get_or_create_admin()
