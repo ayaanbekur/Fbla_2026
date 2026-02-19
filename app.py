@@ -154,7 +154,7 @@ def run_migration():
             )
             cursor = conn.cursor()
 
-            # Check if created_at column exists
+            # Check if created_at column exists in users
             cursor.execute("""
                 SELECT column_name
                 FROM information_schema.columns
@@ -172,6 +172,92 @@ def run_migration():
                 print("[MIGRATION] Successfully added created_at column.")
             else:
                 print("[MIGRATION] created_at column already exists.")
+
+            # Check and add new columns for guest posting and enhanced claiming
+            
+            # 1. secret_detail in item table
+            cursor.execute("""
+                SELECT column_name
+                FROM information_schema.columns
+                WHERE table_name = 'item' AND column_name = 'secret_detail'
+            """)
+            if not cursor.fetchone():
+                print("[MIGRATION] Adding secret_detail column to item table...")
+                cursor.execute("ALTER TABLE item ADD COLUMN secret_detail TEXT")
+                conn.commit()
+                print("[MIGRATION] ✓ Added secret_detail column")
+            else:
+                print("[MIGRATION] ✓ secret_detail column already exists")
+            
+            # 2. guest_email in item table
+            cursor.execute("""
+                SELECT column_name
+                FROM information_schema.columns
+                WHERE table_name = 'item' AND column_name = 'guest_email'
+            """)
+            if not cursor.fetchone():
+                print("[MIGRATION] Adding guest_email column to item table...")
+                cursor.execute("ALTER TABLE item ADD COLUMN guest_email VARCHAR(120)")
+                conn.commit()
+                print("[MIGRATION] ✓ Added guest_email column")
+            else:
+                print("[MIGRATION] ✓ guest_email column already exists")
+            
+            # 3. claim_reason in claim_request table
+            cursor.execute("""
+                SELECT column_name
+                FROM information_schema.columns
+                WHERE table_name = 'claim_request' AND column_name = 'claim_reason'
+            """)
+            if not cursor.fetchone():
+                print("[MIGRATION] Adding claim_reason column to claim_request table...")
+                cursor.execute("ALTER TABLE claim_request ADD COLUMN claim_reason TEXT")
+                conn.commit()
+                print("[MIGRATION] ✓ Added claim_reason column")
+            else:
+                print("[MIGRATION] ✓ claim_reason column already exists")
+            
+            # 4. identifiable_features in claim_request table
+            cursor.execute("""
+                SELECT column_name
+                FROM information_schema.columns
+                WHERE table_name = 'claim_request' AND column_name = 'identifiable_features'
+            """)
+            if not cursor.fetchone():
+                print("[MIGRATION] Adding identifiable_features column to claim_request table...")
+                cursor.execute("ALTER TABLE claim_request ADD COLUMN identifiable_features TEXT")
+                conn.commit()
+                print("[MIGRATION] ✓ Added identifiable_features column")
+            else:
+                print("[MIGRATION] ✓ identifiable_features column already exists")
+            
+            # 5. secret_detail_answer in claim_request table
+            cursor.execute("""
+                SELECT column_name
+                FROM information_schema.columns
+                WHERE table_name = 'claim_request' AND column_name = 'secret_detail_answer'
+            """)
+            if not cursor.fetchone():
+                print("[MIGRATION] Adding secret_detail_answer column to claim_request table...")
+                cursor.execute("ALTER TABLE claim_request ADD COLUMN secret_detail_answer TEXT")
+                conn.commit()
+                print("[MIGRATION] ✓ Added secret_detail_answer column")
+            else:
+                print("[MIGRATION] ✓ secret_detail_answer column already exists")
+            
+            # 6. claimant_email in claim_request table
+            cursor.execute("""
+                SELECT column_name
+                FROM information_schema.columns
+                WHERE table_name = 'claim_request' AND column_name = 'claimant_email'
+            """)
+            if not cursor.fetchone():
+                print("[MIGRATION] Adding claimant_email column to claim_request table...")
+                cursor.execute("ALTER TABLE claim_request ADD COLUMN claimant_email VARCHAR(120)")
+                conn.commit()
+                print("[MIGRATION] ✓ Added claimant_email column")
+            else:
+                print("[MIGRATION] ✓ claimant_email column already exists")
 
             conn.close()
             print("[MIGRATION] Migration completed successfully")
