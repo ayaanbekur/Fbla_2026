@@ -885,7 +885,7 @@ body {
 }
 
 /* Glow effects for important elements */
-.glow, .highlight, .featured {
+.glow, .featured {
   animation: glow 3s ease-in-out infinite;
 }
 
