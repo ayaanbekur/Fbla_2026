@@ -1038,6 +1038,7 @@ def admin_approve_claim(claim_id):
         claim.status = 'approved'
         db.session.commit()
         session['admin_action_msg'] = f'Claim request from {claim.claimant_name} approved'
+        return redirect(url_for("admin_view_claims", item_id=claim.item_id))
     return redirect(url_for("admin"))
 
 
@@ -1050,6 +1051,8 @@ def admin_reject_claim(claim_id):
         claim.status = 'rejected'
         db.session.commit()
         session['admin_action_msg'] = f'Claim request from {claim.claimant_name} rejected'
+        return redirect(url_for("admin_view_claims", item_id=claim.item_id))
+    return redirect(url_for("admin"))
     return redirect(url_for("admin"))
 
 

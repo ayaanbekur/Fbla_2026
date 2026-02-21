@@ -4,6 +4,23 @@
 <div class="admin-claims-container">
     <a href="{{ url_for('admin') }}" class="nav-link" style="margin-bottom: 1rem; display: inline-block;">← Back to Dashboard</a>
     
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        {% for msg in messages %}
+          <div class="admin-toast">{{ msg }}</div>
+        {% endfor %}
+        <script>
+          setTimeout(function(){
+            const toasts = document.querySelectorAll('.admin-toast');
+            toasts.forEach(function(t){
+              t.style.opacity = '0';
+              setTimeout(function(){ t.remove(); }, 600);
+            });
+          }, 3000);
+        </script>
+      {% endif %}
+    {% endwith %}
+    
     <div class="card-grid" style="margin-bottom: 2rem;">
         <div class="item-card">
             <div class="card-body">
@@ -37,6 +54,7 @@
                         {% endif %}
                         <th style="padding: 12px; text-align: left;">Status</th>
                         <th style="padding: 12px; text-align: left;">Submitted</th>
+                        <th style="padding: 12px; text-align: left;">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -59,6 +77,20 @@
                             {% endif %}
                         </td>
                         <td style="padding: 12px; font-size: 0.9rem;">{{ claim.timestamp.strftime('%Y-%m-%d %H:%M') }}</td>
+                        <td style="padding: 12px;">
+                            {% if claim.status == 'pending' %}
+                            <div style="display: flex; gap: 0.5rem;">
+                                <form method="post" action="{{ url_for('admin_approve_claim', claim_id=claim.id) }}" style="display:inline;">
+                                    <button type="submit" class="cta-button small" style="padding: 0.4rem 0.8rem; font-size: 0.85rem; background: #27ae60;">Approve</button>
+                                </form>
+                                <form method="post" action="{{ url_for('admin_reject_claim', claim_id=claim.id) }}" style="display:inline;" onsubmit="return confirm('Reject this claim?');">
+                                    <button type="submit" class="danger-button small" style="padding: 0.4rem 0.8rem; font-size: 0.85rem; background: #e74c3c;">Reject</button>
+                                </form>
+                            </div>
+                            {% else %}
+                            <span style="color: var(--text-muted); font-size: 0.9rem;">—</span>
+                            {% endif %}
+                        </td>
                     </tr>
                     {% endfor %}
                 </tbody>
@@ -86,6 +118,22 @@
 
 .claims-table tbody tr:hover {
     background: var(--background);
+}
+
+.admin-toast {
+    position: fixed;
+    right: 20px;
+    top: 20px;
+    background: linear-gradient(90deg,#0A8754,#004F2D);
+    color: #BFD7EA;
+    padding: 12px 16px;
+    border-radius: 10px;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+    z-index: 2000;
+    opacity: 1;
+    transition: opacity 0.5s ease;
+    max-width: 320px;
+    word-break: break-word;
 }
 </style>
 {% endblock %}
