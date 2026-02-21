@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="admin-claims-container">
+    <h2>Claim Requests for: {{ item.name }}</h2>
+    <p><strong>Description:</strong> {{ item.description }}</p>
+    <p><strong>Location:</strong> {{ item.location }}</p>
+    <p><strong>Status:</strong> {{ item.status }}</p>
+    <hr>
+    {% if claims %}
+        <table class="claims-table">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Reason</th>
+                    <th>Features</th>
+                    <th>Secret Detail</th>
+                    <th>Status</th>
+                    <th>Submitted</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for claim in claims %}
+                <tr>
+                    <td>{{ claim.claimant_name }}</td>
+                    <td>{{ claim.claimant_email }}</td>
+                    <td>{{ claim.claim_reason }}</td>
+                    <td>{{ claim.identifiable_features }}</td>
+                    <td>{{ claim.secret_detail_answer }}</td>
+                    <td>{{ claim.status }}</td>
+                    <td>{{ claim.timestamp.strftime('%Y-%m-%d %H:%M') }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p>No claim requests for this item yet.</p>
+    {% endif %}
+    <a href="{{ url_for('admin') }}" class="btn btn-secondary">Back to Admin Dashboard</a>
+</div>
+<style>
+.admin-claims-container { max-width: 900px; margin: 2rem auto; }
+.claims-table { width: 100%; border-collapse: collapse; }
+.claims-table th, .claims-table td { border: 1px solid #ccc; padding: 8px; }
+.claims-table th { background: #f5f5f5; }
+</style>
+{% endblock %}

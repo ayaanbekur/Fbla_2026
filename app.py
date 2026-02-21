@@ -109,11 +109,15 @@ def get_or_create_admin():
     db.session.commit()
     return admin
 
-
-
-@login_manager.user_loader
-def load_user(user_id):
-    return User.query.get(int(user_id))
+# -------------------
+# Admin: View claim requests for an item
+# -------------------
+@app.route('/admin/item/<int:item_id>/claims')
+@admin_required
+def admin_view_claims(item_id):
+    item = Item.query.get_or_404(item_id)
+    claims = ClaimRequest.query.filter_by(item_id=item_id).order_by(ClaimRequest.timestamp.desc()).all()
+    return render_template('admin_claims.html', item=item, claims=claims)
 
 # -------------------
 # Jinja template context
