@@ -61,12 +61,12 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db.init_app(app)
 print("[STARTUP] Database configured")
 
-# -------------------
-# Decorators
-# -------------------
+# ============================================================================
+# AUTHENTICATION & DECORATORS
+# ============================================================================
 
 def admin_required(f):
-    """Decorator to ensure user is logged in and is admin."""
+    """Decorator to restrict route access to authenticated admin users only."""
     @wraps(f)
     def wrapper(*args, **kwargs):
         if not current_user.is_authenticated or not getattr(current_user, 'is_admin', False):
@@ -74,19 +74,17 @@ def admin_required(f):
         return f(*args, **kwargs)
     return wrapper
 
-# -------------------
-# Flask-Login user loader
-# -------------------
-
 @login_manager.user_loader
 def load_user(user_id):
+    """Load user by ID from database for Flask-Login."""
     return User.query.get(int(user_id))
 
-# -------------------
-# Helper functions
-# -------------------
+# ============================================================================
+# HELPER FUNCTIONS
+# ============================================================================
 
 def get_or_create_admin():
+    """Ensure admin user exists with correct credentials and permissions."""
     admin = User.query.filter_by(email=ADMIN_USERNAME).first()
 
     if not admin:
@@ -94,49 +92,39 @@ def get_or_create_admin():
             name="Admin",
             email=ADMIN_USERNAME,
             is_admin=True,
-            school="All Schools"  # Admin can see all schools
+            school="All Schools"
         )
         admin.set_password(ADMIN_PASSWORD)
         db.session.add(admin)
     else:
-        # FORCE admin privileges
         admin.is_admin = True
         admin.set_password(ADMIN_PASSWORD)
-        # Ensure admin has a school set
         if not admin.school:
             admin.school = "All Schools"
 
-    # Set created_at if not set
     if admin.created_at is None:
         admin.created_at = datetime.utcnow()
 
     db.session.commit()
     return admin
 
-# -------------------
-# Admin: View claim requests for an item
-# -------------------
 @app.route('/admin/item/<int:item_id>/claims')
 @admin_required
 def admin_view_claims(item_id):
+    """Display all claim requests for a specific item."""
     item = Item.query.get_or_404(item_id)
     claims = ClaimRequest.query.filter_by(item_id=item_id).order_by(ClaimRequest.timestamp.desc()).all()
     return render_template('admin_claims.html', item=item, claims=claims)
 
-# -------------------
-# Jinja template context
-# -------------------
-
 @app.context_processor
 def inject_now():
-    """Inject helper values into Jinja templates."""
+    """Make datetime utilities available in all Jinja templates."""
     return {"now": datetime.now, "current_year": datetime.now().year}
 
 def run_migration():
-    """Run database migrations for production"""
+    """Run database migrations for PostgreSQL production database."""
     try:
         print("[MIGRATION] Starting database migration check...")
-        # Check if we're using PostgreSQL
         if db_url.startswith("postgresql://"):
             print("[MIGRATION] Detected PostgreSQL database")
             import psycopg2
@@ -298,32 +286,36 @@ with app.app_context():
 
 print("[STARTUP] Flask app initialization complete!")
 
-# Home
+# ============================================================================
+# PUBLIC ROUTES
+# ============================================================================
+
 @app.route("/")
 def index():
-    # Check if user has selected a school
+    """Redirect to school selection if not selected, else show home."""
     selected_school = session.get('school')
     if not selected_school:
         return redirect(url_for('select_school'))
     return render_template("index.html", selected_school=selected_school)
 
-# School selection
 @app.route("/select-school")
 def select_school():
+    """Display school selection page."""
     return render_template("select_school.html")
 
 @app.route("/set-school", methods=['POST'])
 def set_school():
+    """Set selected school in user session and redirect to home."""
     school = request.form.get('school')
     if school:
         session['school'] = school
-        session.permanent = True  # Make session persistent
+        session.permanent = True
     return redirect(url_for('index'))
 
-# Switch school view
 @app.route("/switch_school", methods=["GET", "POST"])
 @login_required
 def switch_school():
+    """Allow authenticated users to change their school view."""
     if request.method == "POST":
         school = request.form.get("school")
         if school:
@@ -331,26 +323,25 @@ def switch_school():
             flash(f"Now viewing items from {school}", "success")
             return redirect(url_for('browse', school=school))
     
-    # Get all available schools
     schools = [
         "South Forsyth", "North Forsyth", "West Forsyth", "East Forsyth",
         "Forsyth Central", "Lambert", "Denmark", "Alliance"
     ]
-    
     current_school = session.get('school', 'South Forsyth')
     return render_template("switch_school.html", schools=schools, current_school=current_school)
  
-# Browse items
+# ============================================================================
+# ITEM MANAGEMENT (POST, BROWSE, CLAIM)
+# ============================================================================
+
 @app.route("/browse")
 def browse():
-    # Check if user has selected a school
+    """Search and browse approved lost & found items for selected school."""
     selected_school = session.get('school')
     if not selected_school:
         return redirect(url_for('select_school'))
 
-    # Allow viewing items from any school (admins see all, users can switch)
     view_school = request.args.get('school', selected_school)
-
     search_query = request.args.get("q", "").strip()
     items = Item.query.filter_by(approved=True, school=view_school).all()
 
@@ -365,8 +356,6 @@ def browse():
 
     return render_template("browse.html", items=items, search_query=search_query, selected_school=selected_school, view_school=view_school)
 
-
-# Guest: Post a found item (no login required)
 @app.route("/post_found_item", methods=["GET", "POST"])
 def post_found_item():
     """Allow guests to post found items without creating an account."""
@@ -378,41 +367,35 @@ def post_found_item():
         secret_detail = request.form.get("secret_detail", "").strip()
         guest_email = request.form.get("email", "").strip()
 
-        # Validate required fields
         if not name or not description or not secret_detail or not guest_email:
             flash("Please fill in all required fields.", "danger")
             return redirect(url_for("post_found_item"))
 
-        # Handle image upload
         image_filename = None
         if "image" in request.files:
             file = request.files["image"]
             if file and file.filename:
                 filename = secure_filename(file.filename)
-                # Add timestamp to make unique
                 timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_")
                 filename = timestamp + filename
                 file.save(os.path.join(app.config["UPLOAD_FOLDER"], filename))
                 image_filename = filename
 
-        # Create item
         new_item = Item(
             name=name,
             description=description,
             location=location,
             school=school,
             status='Found',
-            approved=False,  # Requires admin approval
+            approved=False,
             image_filename=image_filename,
             secret_detail=secret_detail,
             guest_email=guest_email,
-            owner_id=None  # Guest post, no user account
+            owner_id=None
         )
-
         db.session.add(new_item)
         db.session.commit()
-
-        flash(f"Your found item has been posted! We've sent a verification email to {guest_email}. Check your email to confirm your post.", "success")
+        flash(f"Your found item has been posted! We've sent a verification email to {guest_email}.", "success")
         return redirect(url_for("browse"))
 
     schools = [
@@ -422,15 +405,20 @@ def post_found_item():
     return render_template("post_found_item.html", schools=schools)
 
 
-# AI Chat page (display)
+# ============================================================================
+# AI CHAT
+# ============================================================================
+
 @app.route("/chat/ai")
 @login_required
 def ai_chat_page():
+    """Display AI chat interface."""
     return render_template("ai_chat.html")
 
 @app.route("/ai_chat", methods=["POST"])
 @login_required
 def ai_chat():
+    """Handle AI conversation and lost item creation via AI."""
     data = request.get_json() or {}
     user_msg = data.get("message", "").strip()
 
@@ -440,7 +428,6 @@ def ai_chat():
     if not AI_ENDPOINT:
         return jsonify({"error": "AI_ENDPOINT not configured"}), 500
 
-    # Fetch approved items
     items = Item.query.filter_by(approved=True).all()
 
     if items:
@@ -565,8 +552,13 @@ No extra text outside JSON.
     return jsonify({"reply": reply})
 
 
+# ============================================================================
+# AUTHENTICATION (SIGNUP, LOGIN, LOGOUT)
+# ============================================================================
+
 @app.route("/signup", methods=["GET", "POST"])
 def signup():
+    """User account registration."""
     if request.method == "POST":
         name = request.form["name"]
         email = request.form["email"]
@@ -589,6 +581,7 @@ def signup():
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
+    """User login with email and password."""
     if request.method == "POST":
         email = request.form.get("email")
         password = request.form.get("password")
@@ -597,7 +590,6 @@ def login():
 
         if user and user.check_password(password):
             login_user(user)
-            # If the user record has is_admin=True, set session admin flag so UI shows admin tools
             try:
                 if getattr(user, 'is_admin', False):
                     session['admin'] = True
@@ -614,6 +606,7 @@ def login():
 @app.route("/logout")
 @login_required
 def logout():
+    """User logout."""
     logout_user()
     flash("Logged out successfully!", "info")
     return redirect(url_for("login"))
@@ -621,6 +614,7 @@ def logout():
 @app.route("/settings", methods=["GET", "POST"])
 @login_required
 def settings():
+    """User account settings and password change."""
     if request.method == "POST":
         current_password = request.form.get("current_password")
         new_password = request.form.get("new_password")
@@ -651,6 +645,7 @@ def settings():
 
 @app.route("/admin_login", methods=["GET", "POST"])
 def admin_login():
+    """Admin login interface."""
     if request.method == "POST":
         email = request.form.get("email", "").strip()
         password = request.form.get("password", "").strip()
@@ -668,20 +663,23 @@ def admin_login():
 
     return render_template("admin_login.html")
 
-# Global chat (everyone)
+# ============================================================================
+# MESSAGING (GLOBAL CHAT & ADMIN CHAT)
+# ============================================================================
+
 @app.route("/chat/global", methods=["GET", "POST"])
 @login_required
 def global_chat():
+    """Global community chat visible to all authenticated users."""
     if request.method == "POST":
         content = request.form["content"]
-        msg = Message(sender_id=current_user.id, receiver_id=None, content=content)  # receiver_id=None = global
+        msg = Message(sender_id=current_user.id, receiver_id=None, content=content)
         db.session.add(msg)
         db.session.commit()
         return redirect(url_for("global_chat"))
 
     all_messages = Message.query.filter_by(receiver_id=None).order_by(Message.timestamp.asc()).all()
     
-    # Format messages with sender names
     messages = []
     for m in all_messages:
         sender_name = "Unknown"
@@ -700,16 +698,13 @@ def global_chat():
     
     return render_template("chat.html", messages=messages, chat_type="Global")
  
-# Chat with admin
 @app.route("/chat/admin", methods=["GET", "POST"])
 @login_required
 def admin_chat():
-    # Check if current user is logged in admin (session-based)
+    """One-on-one chat between users and admin."""
     if session.get("admin"):
-        # Admin view: Show all conversations
         return admin_chat_manage()
     
-    # Regular user chat with admin
     admin = get_or_create_admin()
     admin_id = admin.id
     if request.method == "POST":
@@ -742,27 +737,23 @@ def admin_chat():
             "sender_name": sender_name,
             "is_self": m.sender_id == current_user.id
         })
-
+    
     return render_template("chat.html", messages=messages, chat_type="Admin")
 
 
 @app.route("/admin/chat_manage", methods=["GET"])
 @admin_required
 def admin_chat_manage():
-    """Admin view of all user conversations with admin"""
+    """Admin view showing all user conversations sorted by recency."""
     admin = get_or_create_admin()
     admin_id = admin.id
 
-
-    
-    # Get all conversations (unique users who messaged admin)
     conversations = Message.query.filter(
         ((Message.receiver_id == admin_id) | (Message.sender_id == admin_id))
     ).with_entities(Message.sender_id).distinct().all()
     
     user_ids = [c[0] for c in conversations if c[0] != admin_id]
     
-    # Get user details and latest message for each conversation
     user_chats = []
     for user_id in user_ids:
         user = User.query.get(user_id)
@@ -780,22 +771,19 @@ def admin_chat_manage():
                 "last_timestamp": last_msg.timestamp if last_msg else None
             })
     
-    # Sort by latest message timestamp
     user_chats.sort(key=lambda x: x["last_timestamp"] or "", reverse=True)
     
     return render_template("admin_chat_manage.html", user_chats=user_chats)
-
 
 # Admin view specific user conversation
 @app.route("/admin/chat/<int:user_id>", methods=["GET", "POST"])
 @admin_required
 def admin_view_chat(user_id):
-    
+    """View and respond to a specific user's admin chat messages."""
     admin = get_or_create_admin()
     admin_id = admin.id
 
     user = User.query.get(user_id)
-    
     if not user:
         return "User not found", 404
     
@@ -829,14 +817,12 @@ def admin_view_chat(user_id):
     
     return render_template("admin_chat_view.html", messages=messages, user=user)
 
-# Report lost item
 @app.route("/report", methods=["GET", "POST"])
 @login_required
 def report():
+    """Allow users to report lost items pending admin approval."""
     if request.method == "POST":
-        # Get user's school from session
         user_school = session.get('school', 'South Forsyth')
-        
         item = Item(
             name=request.form["name"],
             description=request.form["description"],
@@ -853,14 +839,13 @@ def report():
 
     return render_template("report.html")
 
-# Claim item
 @app.route("/claim/<int:item_id>", methods=["GET", "POST"])
 def claim(item_id):
+    """Display claim form and handle claim submission for an item."""
     item = Item.query.get(item_id)
     if not item:
         flash("Item not found", "danger")
         return redirect(url_for("browse"))
-    
     if request.method == "POST":
         claimant_name = request.form.get("claimant_name", "").strip()
         claimant_email = request.form.get("claimant_email", "").strip()
@@ -868,18 +853,15 @@ def claim(item_id):
         identifiable_features = request.form.get("identifiable_features", "").strip()
         secret_detail_answer = request.form.get("secret_detail_answer", "").strip()
 
-        # Validate required fields
         if not claimant_name or not claimant_email or not claim_reason or not identifiable_features:
             flash("Please fill in all required fields.", "danger")
             return redirect(url_for("claim", item_id=item_id))
 
-        # If item has a secret detail, verify the answer
         item_secret = getattr(item, 'secret_detail', None)
         if item_secret and not secret_detail_answer:
             flash("You must provide the secret detail to claim this item.", "danger")
             return redirect(url_for("claim", item_id=item_id))
 
-        # Create claim request
         try:
             new_claim = ClaimRequest(
                 item_id=item_id,
@@ -890,18 +872,15 @@ def claim(item_id):
                 secret_detail_answer=secret_detail_answer,
                 status="pending"
             )
-
             db.session.add(new_claim)
             db.session.commit()
-
-            flash(f"Claim request submitted! We'll review your claim and verify your details. You'll receive an email update at {claimant_email}.", "success")
+            flash(f"Claim request submitted! You'll receive updates at {claimant_email}.", "success")
             return redirect(url_for("browse"))
         except Exception as e:
             db.session.rollback()
             flash(f"Error submitting claim: {str(e)}", "danger")
             return redirect(url_for("claim", item_id=item_id))
 
-    # Get all claims for this item
     claims = ClaimRequest.query.filter_by(item_id=item_id).all()
     pending_claims = [c for c in claims if c.status == "pending"]
     approved_claims = [c for c in claims if c.status == "approved"]
@@ -909,18 +888,19 @@ def claim(item_id):
     return render_template("claim.html", item=item, pending_claims=pending_claims, approved_claims=approved_claims)
 
 
-# Admin dashboard
-# Admin dashboard
+# ============================================================================
+# ADMIN DASHBOARD & ITEM MANAGEMENT
+# ============================================================================
+
 @app.route("/admin", methods=["GET", "POST"])
 @admin_required
 def admin():
-
-    # Handle adding a new item from admin
+    """Admin dashboard for managing items."""
     if request.method == "POST" and "add_item" in request.form:
         name = request.form["name"]
         description = request.form["description"]
         location = request.form.get("location", "")
-        school = request.form.get("school", "South Forsyth")  # Default fallback
+        school = request.form.get("school", "South Forsyth")
         item = Item(name=name, description=description, location=location, school=school, status='Found', approved=True)
         db.session.add(item)
         db.session.commit()
@@ -933,20 +913,17 @@ def admin():
 
     return render_template("admin.html", items=items, show_admin_login_popup=show_popup, admin_action_msg=action_msg)
 
-
-# Logout
 @app.route('/admin/logout', methods=['POST', 'GET'])
 @admin_required
 def admin_logout():
+    """Admin logout."""
     session.pop('admin', None)
     return redirect(url_for('index'))
 
-
-# Delete item (POST)
-# Admin: delete item
 @app.route("/admin/delete/<int:item_id>", methods=['POST'])
 @admin_required
 def admin_delete(item_id):
+    """Permanently delete an item."""
     item = Item.query.get(item_id)
     if item:
         db.session.delete(item)
@@ -954,22 +931,20 @@ def admin_delete(item_id):
         session['admin_action_msg'] = 'Item deleted'
     return redirect(url_for("admin"))
 
-
-# Admin: approve item
 @app.route("/admin/approve/<int:item_id>", methods=['POST'])
 @admin_required
 def approve(item_id):
+    """Approve a pending item for public viewing."""
     item = Item.query.get(item_id)
     if item:
         item.approved = True
         db.session.commit()
     return redirect(url_for("admin"))
 
-
-# Admin: reject item
 @app.route("/admin/reject/<int:item_id>", methods=['POST'])
 @admin_required
 def reject(item_id):
+    """Reject and remove a pending item."""
     item = Item.query.get(item_id)
     if item:
         db.session.delete(item)
@@ -977,11 +952,10 @@ def reject(item_id):
         session['admin_action_msg'] = 'Item rejected and removed'
     return redirect(url_for("admin"))
 
-
-# Admin: clear claim
 @app.route("/admin/clear_claim/<int:item_id>", methods=['POST'])
 @admin_required
 def clear_claim(item_id):
+    """Clear the claim on an item (reset to Found status)."""
     item = Item.query.get(item_id)
     if item:
         item.status = 'Found'
@@ -990,11 +964,10 @@ def clear_claim(item_id):
         session['admin_action_msg'] = 'Claim cleared'
     return redirect(url_for("admin"))
 
-
-# Admin: remove item
 @app.route("/admin/remove/<int:item_id>", methods=['POST'])
 @admin_required
 def remove_item(item_id):
+    """Mark an item as Removed from circulation."""
     item = Item.query.get(item_id)
     if item:
         item.status = 'Removed'
@@ -1003,11 +976,10 @@ def remove_item(item_id):
         session['admin_action_msg'] = 'Item marked Removed'
     return redirect(url_for("admin"))
 
-
-# Admin: delete item from browse view
 @app.route("/admin/delete_from_browse/<int:item_id>", methods=['POST'])
 @admin_required
 def admin_delete_browse(item_id):
+    """Delete an item from the browse view."""
     item = Item.query.get(item_id)
     if item:
         db.session.delete(item)
@@ -1029,10 +1001,14 @@ def admin_mark_claimed(item_id):
     return redirect(url_for("browse"))
 
 
-# Admin: approve claim request
+# ============================================================================
+# ADMIN CLAIM MANAGEMENT
+# ============================================================================
+
 @app.route("/admin/approve_claim/<int:claim_id>", methods=['POST'])
 @admin_required
 def admin_approve_claim(claim_id):
+    """Approve a user's claim for an item."""
     claim = ClaimRequest.query.get(claim_id)
     if claim:
         claim.status = 'approved'
@@ -1041,11 +1017,10 @@ def admin_approve_claim(claim_id):
         return redirect(url_for("admin_view_claims", item_id=claim.item_id))
     return redirect(url_for("admin"))
 
-
-# Admin: reject claim request
 @app.route("/admin/reject_claim/<int:claim_id>", methods=['POST'])
 @admin_required
 def admin_reject_claim(claim_id):
+    """Reject a user's claim for an item."""
     claim = ClaimRequest.query.get(claim_id)
     if claim:
         claim.status = 'rejected'
@@ -1106,9 +1081,9 @@ def admin_send_to_user(user_id):
     
     return redirect(url_for("admin_chat_with", user_id=user_id))
 
+# ============================================================================
+# APP INITIALIZATION & ENTRYPOINT\n# ============================================================================
 
-# Run
 if __name__ == "__main__":
-    # For production deployment (like Render)
-    port = int(os.environ.get('PORT', 5000))
+    \"\"\"Run the Flask application on configured port.\"\"\"\n    port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port, debug=False)
