@@ -120,6 +120,8 @@
           </form>
           {% endif %}
 
+          <a href="{{ url_for('admin_view_claims', item_id=item['id']) }}" class="nav-link" style="background:var(--surface);color:var(--text);border-radius:8px;padding:0.35rem 0.6rem;border:none;cursor:pointer;margin-left:0.5rem;text-decoration:none;display:inline-block;">📋 View Claims</a>
+
           <form method="post" action="{{ url_for('admin_delete', item_id=item['id']) }}" style="margin-left:auto;display:inline;" onsubmit="return confirm('Permanently delete this item?');">
             <button type="submit" class="danger-button small" style="background:#c0392b;">Delete</button>
           </form>
