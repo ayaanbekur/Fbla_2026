@@ -15,6 +15,10 @@ from flask_login import (
     LoginManager, login_user, logout_user, current_user, login_required
 )
 from werkzeug.utils import secure_filename
+import torch
+from PIL import Image
+import numpy as np
+from transformers import CLIPProcessor, CLIPModel
 
 # Local modules / database models
 from init_db import db, User, Item, Message, AIChat, Report, ClaimRequest
@@ -60,6 +64,56 @@ app.config['SQLALCHEMY_DATABASE_URI'] = db_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db.init_app(app)
 print("[STARTUP] Database configured")
+
+# ============================================================================
+# CLIP MODEL SETUP FOR PHOTO MATCHING
+# ============================================================================
+
+# Initialize CLIP model from Hugging Face (lazy load to avoid blocking startup)
+clip_model = None
+clip_processor = None
+device = "cuda" if torch.cuda.is_available() else "cpu"
+print(f"[STARTUP] Using device: {device} for CLIP model")
+
+def load_clip_model():
+    """Lazily load CLIP model from Hugging Face."""
+    global clip_model, clip_processor
+    if clip_model is None:
+        print("[CLIP] Loading CLIP model from Hugging Face...")
+        clip_model = CLIPModel.from_pretrained("openai/clip-vit-base-patch32")
+        clip_processor = CLIPProcessor.from_pretrained("openai/clip-vit-base-patch32")
+        clip_model.to(device)
+        clip_model.eval()
+        print("[CLIP] Model loaded successfully")
+    return clip_model, clip_processor
+
+def get_image_embedding(image_path):
+    """Get embedding vector for an image using CLIP."""
+    try:
+        model, processor = load_clip_model()
+        image = Image.open(image_path).convert("RGB")
+        
+        with torch.no_grad():
+            inputs = processor(images=image, return_tensors="pt").to(device)
+            image_features = model.get_image_features(**inputs)
+            # Normalize the embeddings
+            image_features = image_features / image_features.norm(dim=-1, keepdim=True)
+        
+        return image_features.cpu().numpy()
+    except Exception as e:
+        print(f"[CLIP] Error getting embedding for {image_path}: {e}")
+        return None
+
+def compute_similarity(embedding1, embedding2):
+    """Compute cosine similarity between two embeddings (0-1, where 1 is identical)."""
+    if embedding1 is None or embedding2 is None:
+        return 0.0
+    
+    # Cosine similarity
+    similarity = np.dot(embedding1[0], embedding2[0].T)
+    # Convert from [-1, 1] range to [0, 1] range for easier interpretation
+    similarity_normalized = (similarity + 1) / 2
+    return float(similarity_normalized)
 
 # ============================================================================
 # AUTHENTICATION & DECORATORS
@@ -403,6 +457,141 @@ def post_found_item():
         "Forsyth Central", "Lambert", "Denmark", "Alliance"
     ]
     return render_template("post_found_item.html", schools=schools)
+
+
+# ============================================================================
+# PHOTO MATCHING WITH CLIP
+# ============================================================================
+
+@app.route("/api/photo_match/<int:item_id>", methods=["GET"])
+def photo_match_suggestions(item_id):
+    """Get photo-similar items using CLIP embeddings.
+    
+    Returns top matches based on visual similarity to the given item.
+    Requires the item to have an image.
+    """
+    item = Item.query.get(item_id)
+    if not item or not item.image_filename:
+        return jsonify({"error": "Item not found or has no image"}), 404
+    
+    try:
+        item_path = os.path.join(app.config["UPLOAD_FOLDER"], item.image_filename)
+        if not os.path.exists(item_path):
+            return jsonify({"error": "Item image not found on server"}), 404
+        
+        # Get embedding for the item
+        item_embedding = get_image_embedding(item_path)
+        if item_embedding is None:
+            return jsonify({"error": "Could not process item image"}), 400
+        
+        selected_school = session.get('school', item.school)
+        
+        # Get embeddings for all other approved items in the same school with images
+        matches = []
+        all_items = Item.query.filter(
+            Item.approved == True,
+            Item.school == selected_school,
+            Item.id != item_id,
+            Item.image_filename != None
+        ).all()
+        
+        for other_item in all_items:
+            try:
+                other_path = os.path.join(app.config["UPLOAD_FOLDER"], other_item.image_filename)
+                if not os.path.exists(other_path):
+                    continue
+                
+                other_embedding = get_image_embedding(other_path)
+                if other_embedding is None:
+                    continue
+                
+                similarity = compute_similarity(item_embedding, other_embedding)
+                
+                matches.append({
+                    "id": other_item.id,
+                    "name": other_item.name,
+                    "description": other_item.description,
+                    "image": other_item.image_filename,
+                    "location": other_item.location,
+                    "similarity": round(similarity, 3),
+                    "status": other_item.status
+                })
+            except Exception as e:
+                print(f"[CLIP] Error processing item {other_item.id}: {e}")
+                continue
+        
+        # Sort by similarity (descending) and return top 5
+        matches.sort(key=lambda x: x["similarity"], reverse=True)
+        top_matches = matches[:5]
+        
+        return jsonify({
+            "success": True,
+            "query_item_id": item_id,
+            "matches": top_matches,
+            "total_matches": len(matches)
+        })
+    
+    except Exception as e:
+        print(f"[CLIP] Error in photo_match_suggestions: {e}")
+        return jsonify({"error": f"Error processing photos: {str(e)}"}), 500
+
+
+@app.route("/api/compare_photos", methods=["POST"])
+def compare_photos():
+    """Compare two photos and return similarity score.
+    
+    Expected JSON: {"item1_id": int, "item2_id": int}
+    Returns similarity score from 0-1 where 1 = identical.
+    """
+    data = request.get_json() or {}
+    item1_id = data.get("item1_id")
+    item2_id = data.get("item2_id")
+    
+    if not item1_id or not item2_id:
+        return jsonify({"error": "Both item1_id and item2_id required"}), 400
+    
+    item1 = Item.query.get(item1_id)
+    item2 = Item.query.get(item2_id)
+    
+    if not item1 or not item2 or not item1.image_filename or not item2.image_filename:
+        return jsonify({"error": "One or both items not found or missing images"}), 404
+    
+    try:
+        path1 = os.path.join(app.config["UPLOAD_FOLDER"], item1.image_filename)
+        path2 = os.path.join(app.config["UPLOAD_FOLDER"], item2.image_filename)
+        
+        if not os.path.exists(path1) or not os.path.exists(path2):
+            return jsonify({"error": "One or both image files not found"}), 404
+        
+        embed1 = get_image_embedding(path1)
+        embed2 = get_image_embedding(path2)
+        
+        if embed1 is None or embed2 is None:
+            return jsonify({"error": "Could not process one or both images"}), 400
+        
+        similarity = compute_similarity(embed1, embed2)
+        
+        # Provide interpretation of the score
+        if similarity > 0.85:
+            interpretation = "Very similar - likely the same item"
+        elif similarity > 0.70:
+            interpretation = "Similar - could be the same item"
+        elif similarity > 0.55:
+            interpretation = "Somewhat similar - possible match"
+        else:
+            interpretation = "Not similar - likely different items"
+        
+        return jsonify({
+            "success": True,
+            "item1_id": item1_id,
+            "item2_id": item2_id,
+            "similarity_score": round(similarity, 3),
+            "interpretation": interpretation
+        })
+    
+    except Exception as e:
+        print(f"[CLIP] Error in compare_photos: {e}")
+        return jsonify({"error": f"Error comparing photos: {str(e)}"}), 500
 
 
 # ============================================================================

@@ -7,3 +7,8 @@ gunicorn
 openai
 werkzeug
 psycopg2-binary
+transformers
+torch
+pillow
+numpy
+scipy
