@@ -57,7 +57,6 @@ class Item(db.Model):
     brand = db.Column(db.String(100), nullable=True)  # Brand name
     date_lost = db.Column(db.Date, nullable=True)  # When item was lost (for date slider)
     date_found = db.Column(db.Date, default=datetime.utcnow)  # When item was found
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
     # Auto-Archive & Donation
     claim_deadline = db.Column(db.DateTime, default=lambda: datetime.utcnow() + timedelta(days=30))
