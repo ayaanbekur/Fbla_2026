@@ -5,7 +5,6 @@ from datetime import datetime
 import json
 import uuid
 import io
-from typing import TYPE_CHECKING
 
 # Third-party libraries
 import requests
@@ -23,13 +22,10 @@ from PIL import Image
 import numpy as np
 from transformers import CLIPProcessor, CLIPModel
 
-if TYPE_CHECKING:
-    import qrcode
-
 try:
     import qrcode
 except ImportError:
-    qrcode = None
+    qrcode = None  # type: ignore
 
 # Local modules / database models
 from init_db import db, User, Item, Message, AIChat, Report, ClaimRequest
