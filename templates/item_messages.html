@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+
+{% block title %}Message about {{ item.name }}{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row">
+        <div class="col-md-8">
+            <h2>💬 Message about: {{ item.name }}</h2>
+            
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5>Item Details</h5>
+                </div>
+                <div class="card-body">
+                    <p><strong>Description:</strong> {{ item.description }}</p>
+                    <p><strong>Location Found:</strong> {{ item.location or 'Not specified' }}</p>
+                    <p><strong>Status:</strong> {{ item.status }}</p>
+                </div>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5>📩 Send a Message</h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST">
+                        <div class="mb-3">
+                            <label for="content" class="form-label">Your Message</label>
+                            <textarea class="form-control" id="content" name="content" rows="4" 
+                                      placeholder="Send an anonymous message to the finder..." required></textarea>
+                            <small class="form-text text-muted">
+                                🔒 Your message is anonymous and monitored for safety.
+                            </small>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Send Message</button>
+                        <a href="{{ url_for('item', item_id=item.id) }}" class="btn btn-secondary">Back to Item</a>
+                    </form>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h5>💬 Message History</h5>
+                </div>
+                <div class="card-body">
+                    {% if messages %}
+                        {% for msg in messages %}
+                        <div class="alert alert-info mb-2">
+                            <strong>{% if msg.is_anonymous %}Anonymous User{% else %}{{ msg.sender_user.name }}{% endif %}</strong>
+                            <small class="text-muted">{{ msg.timestamp.strftime('%m/%d %H:%M') }}</small>
+                            <p class="mb-0 mt-2">{{ msg.content }}</p>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <p class="text-muted">No messages yet. Be the first to send one!</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5>🎯 Photo Matching</h5>
+                </div>
+                <div class="card-body">
+                    <p>Find visually similar items to help identify matches.</p>
+                    {% if item.image_filename %}
+                    <a href="{{ url_for('photo_match_suggestions', item_id=item.id) }}" class="btn btn-success btn-sm">
+                        🔎 Find Similar Items
+                    </a>
+                    {% else %}
+                    <p class="text-muted small">No image available for matching</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

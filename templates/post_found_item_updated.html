@@ -1,0 +1,151 @@
+{% extends "base.html" %}
+
+{% block title %}Post a Found Item{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <h1>📸 Post a Found Item</h1>
+            <p class="lead">Help reunite lost items with their owners!</p>
+
+            <form method="POST" enctype="multipart/form-data">
+                <!-- Basic Information -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">Basic Information</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label for="name" class="form-label">Item Name *</label>
+                            <input type="text" class="form-control" id="name" name="name" 
+                                   placeholder="e.g., Black iPhone 15 Pro" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="description" class="form-label">Description *</label>
+                            <textarea class="form-control" id="description" name="description" 
+                                      rows="4" placeholder="Describe the item in detail..." required></textarea>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="school" class="form-label">School Found *</label>
+                                <select class="form-select" id="school" name="school" required>
+                                    {% for school in schools %}
+                                    <option value="{{ school }}">{{ school }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label for="location" class="form-label">Location Found</label>
+                                <input type="text" class="form-control" id="location" name="location" 
+                                       placeholder="e.g., Gym, Main Office, Cafeteria">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Smart Search Details -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">📋 Details (Helps with Searches)</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label for="category" class="form-label">Category</label>
+                                <select class="form-select" id="category" name="category">
+                                    <option value="">Select Category</option>
+                                    {% for cat in categories %}
+                                    <option value="{{ cat }}">{{ cat }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                            <div class="col-md-4 mb-3">
+                                <label for="color" class="form-label">Color</label>
+                                <input type="text" class="form-control" id="color" name="color" 
+                                       placeholder="e.g., Black, Blue">
+                            </div>
+
+                            <div class="col-md-4 mb-3">
+                                <label for="brand" class="form-label">Brand (if applicable)</label>
+                                <input type="text" class="form-control" id="brand" name="brand" 
+                                       placeholder="e.g., Apple, Nike">
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="date_lost" class="form-label">Date Found</label>
+                            <input type="date" class="form-control" id="date_lost" name="date_lost">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Photo -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">📷 Photo</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label for="image" class="form-label">Upload Photo</label>
+                            <input type="file" class="form-control" id="image" name="image" 
+                                   accept="image/*">
+                            <small class="form-text text-muted">
+                                A clear photo helps identify the item. We use AI to compare photos!
+                            </small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Verification -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">🔐 Verification Details</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label for="secret_detail" class="form-label">Secret Detail *</label>
+                            <textarea class="form-control" id="secret_detail" name="secret_detail" 
+                                      rows="3" placeholder="Tell us something only the owner would know (e.g., engraving, stickers, inside color). This is kept private and used to verify claims." required></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Your Information -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">👤 Your Information</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label for="email" class="form-label">Email Address *</label>
+                            <input type="email" class="form-control" id="email" name="email" 
+                                   placeholder="your@email.com" required>
+                            <small class="form-text text-muted">
+                                The owner will contact you at this email if they claim the item.
+                            </small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Submit -->
+                <div class="mb-4">
+                    <button type="submit" class="btn btn-success btn-lg">
+                        ✅ Post Found Item
+                    </button>
+                    <a href="{{ url_for('browse') }}" class="btn btn-secondary btn-lg">Cancel</a>
+                </div>
+
+                <div class="alert alert-info">
+                    <strong>📝 Note:</strong> Your post will be reviewed by school staff before appearing publicly. 
+                    You'll receive email confirmation updates about claims.
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

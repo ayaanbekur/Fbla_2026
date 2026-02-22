@@ -3,13 +3,15 @@ import os
 from functools import wraps
 from datetime import datetime
 import json
+import uuid
+import io
 
 # Third-party libraries
 import requests
 from dotenv import load_dotenv
 from flask import (
     Flask, render_template, request, redirect, url_for, session,
-    flash, jsonify
+    flash, jsonify, send_file
 )
 from flask_login import (
     LoginManager, login_user, logout_user, current_user, login_required
@@ -309,6 +311,114 @@ def run_migration():
             else:
                 print("[MIGRATION] ✓ claimant_email column already exists")
 
+            # NEW FEATURE MIGRATIONS
+
+            # Smart Search & Filters
+            for col_name in ["category", "color", "brand"]:
+                cursor.execute(f"""
+                    SELECT column_name
+                    FROM information_schema.columns
+                    WHERE table_name = 'item' AND column_name = '{col_name}'
+                """)
+                if not cursor.fetchone():
+                    print(f"[MIGRATION] Adding {col_name} column to item table...")
+                    cursor.execute(f"ALTER TABLE item ADD COLUMN {col_name} VARCHAR(100)")
+                    conn.commit()
+                    print(f"[MIGRATION] ✓ Added {col_name} column")
+
+            # Date fields
+            cursor.execute("""
+                SELECT column_name
+                FROM information_schema.columns
+                WHERE table_name = 'item' AND column_name = 'date_lost'
+            """)
+            if not cursor.fetchone():
+                cursor.execute("ALTER TABLE item ADD COLUMN date_lost DATE")
+                conn.commit()
+                print("[MIGRATION] ✓ Added date_lost column")
+
+            cursor.execute("""
+                SELECT column_name
+                FROM information_schema.columns
+                WHERE table_name = 'item' AND column_name = 'date_found'
+            """)
+            if not cursor.fetchone():
+                cursor.execute("ALTER TABLE item ADD COLUMN date_found DATE DEFAULT CURRENT_DATE")
+                conn.commit()
+                print("[MIGRATION] ✓ Added date_found column")
+
+            # Auto-Archive fields
+            for col_name, col_type in [("is_archived", "BOOLEAN DEFAULT FALSE"), ("archive_date", "TIMESTAMP"), ("claim_deadline", "TIMESTAMP")]:
+                cursor.execute(f"""
+                    SELECT column_name
+                    FROM information_schema.columns
+                    WHERE table_name = 'item' AND column_name = '{col_name}'
+                """)
+                if not cursor.fetchone():
+                    cursor.execute(f"ALTER TABLE item ADD COLUMN {col_name} {col_type}")
+                    conn.commit()
+                    print(f"[MIGRATION] ✓ Added {col_name} column")
+
+            # QR Code
+            cursor.execute("""
+                SELECT column_name
+                FROM information_schema.columns
+                WHERE table_name = 'item' AND column_name = 'qr_code'
+            """)
+            if not cursor.fetchone():
+                cursor.execute("ALTER TABLE item ADD COLUMN qr_code VARCHAR(100) UNIQUE")
+                conn.commit()
+                print("[MIGRATION] ✓ Added qr_code column")
+
+            # Claim Verification
+            for col_name, col_type in [("staff_approved", "BOOLEAN DEFAULT FALSE"), ("approved_by", "INTEGER"), ("approved_at", "TIMESTAMP"), ("pickup_qr_verified", "BOOLEAN DEFAULT FALSE")]:
+                cursor.execute(f"""
+                    SELECT column_name
+                    FROM information_schema.columns
+                    WHERE table_name = 'claim_request' AND column_name = '{col_name}'
+                """)
+                if not cursor.fetchone():
+                    if col_name == "approved_by":
+                        cursor.execute(f"ALTER TABLE claim_request ADD COLUMN {col_name} {col_type} REFERENCES users(id)")
+                    else:
+                        cursor.execute(f"ALTER TABLE claim_request ADD COLUMN {col_name} {col_type}")
+                    conn.commit()
+                    print(f"[MIGRATION] ✓ Added {col_name} column")
+
+            # Notifications
+            for col_name, col_type in [("is_monitored", "BOOLEAN DEFAULT TRUE"), ("is_flagged", "BOOLEAN DEFAULT FALSE"), ("is_anonymous", "BOOLEAN DEFAULT TRUE")]:
+                cursor.execute(f"""
+                    SELECT column_name
+                    FROM information_schema.columns
+                    WHERE table_name = 'message' AND column_name = '{col_name}'
+                """)
+                if not cursor.fetchone():
+                    cursor.execute(f"ALTER TABLE message ADD COLUMN {col_name} {col_type}")
+                    conn.commit()
+                    print(f"[MIGRATION] ✓ Added {col_name} to message table")
+
+            cursor.execute("""
+                SELECT column_name
+                FROM information_schema.columns
+                WHERE table_name = 'message' AND column_name = 'item_id'
+            """)
+            if not cursor.fetchone():
+                cursor.execute("ALTER TABLE message ADD COLUMN item_id INTEGER REFERENCES item(id)")
+                conn.commit()
+                print("[MIGRATION] ✓ Added item_id to message table")
+
+            # User notification preferences
+            for col_name in ["notify_email", "notify_similar_items"]:
+                cursor.execute(f"""
+                    SELECT column_name
+                    FROM information_schema.columns
+                    WHERE table_name = 'users' AND column_name = '{col_name}'
+                """)
+                if not cursor.fetchone():
+                    cursor.execute(f"ALTER TABLE users ADD COLUMN {col_name} BOOLEAN DEFAULT TRUE")
+                    conn.commit()
+                    print(f"[MIGRATION] ✓ Added {col_name} column to users")
+
             conn.close()
             print("[MIGRATION] Migration completed successfully")
         else:
@@ -390,25 +500,82 @@ def switch_school():
 
 @app.route("/browse")
 def browse():
-    """Search and browse approved lost & found items for selected school."""
+    """Search and browse approved lost & found items with smart filters."""
     selected_school = session.get('school')
     if not selected_school:
         return redirect(url_for('select_school'))
 
     view_school = request.args.get('school', selected_school)
     search_query = request.args.get("q", "").strip()
-    items = Item.query.filter_by(approved=True, school=view_school).all()
+    
+    # Filter parameters
+    category = request.args.get("category", "").strip()
+    color = request.args.get("color", "").strip()
+    brand = request.args.get("brand", "").strip()
+    date_from = request.args.get("date_from", "")
+    date_to = request.args.get("date_to", "")
+    
+    # Start with base query
+    items = Item.query.filter_by(approved=True, school=view_school, is_archived=False).all()
 
+    # Keyword search
     if search_query:
-        search_query_lower = search_query.lower()
+        search_lower = search_query.lower()
         items = [
             item for item in items
-            if search_query_lower in item.name.lower()
-            or search_query_lower in item.description.lower()
-            or search_query_lower in item.location.lower()
+            if search_lower in item.name.lower()
+            or search_lower in item.description.lower()
+            or search_lower in item.location.lower()
         ]
+    
+    # Category filter
+    if category and category != "all":
+        items = [item for item in items if item.category and item.category.lower() == category.lower()]
+    
+    # Color filter
+    if color and color != "all":
+        items = [item for item in items if item.color and item.color.lower() == color.lower()]
+    
+    # Brand filter
+    if brand and brand != "all":
+        items = [item for item in items if item.brand and item.brand.lower() == brand.lower()]
+    
+    # Date range filter
+    if date_from:
+        try:
+            from_date = datetime.strptime(date_from, "%Y-%m-%d").date()
+            items = [item for item in items if item.date_lost and item.date_lost >= from_date]
+        except:
+            pass
+    
+    if date_to:
+        try:
+            to_date = datetime.strptime(date_to, "%Y-%m-%d").date()
+            items = [item for item in items if item.date_lost and item.date_lost <= to_date]
+        except:
+            pass
+    
+    # Get unique values for filter dropdowns
+    all_items = Item.query.filter_by(approved=True, school=view_school, is_archived=False).all()
+    categories = sorted(set(item.category for item in all_items if item.category), key=str.lower)
+    colors = sorted(set(item.color for item in all_items if item.color), key=str.lower)
+    brands = sorted(set(item.brand for item in all_items if item.brand), key=str.lower)
 
-    return render_template("browse.html", items=items, search_query=search_query, selected_school=selected_school, view_school=view_school)
+    return render_template(
+        "browse.html", 
+        items=items, 
+        search_query=search_query, 
+        selected_school=selected_school, 
+        view_school=view_school,
+        categories=categories,
+        colors=colors,
+        brands=brands,
+        selected_category=category,
+        selected_color=color,
+        selected_brand=brand,
+        date_from=date_from,
+        date_to=date_to
+    )
 
 @app.route("/post_found_item", methods=["GET", "POST"])
 def post_found_item():
@@ -420,6 +587,10 @@ def post_found_item():
         school = request.form.get("school", "South Forsyth")
         secret_detail = request.form.get("secret_detail", "").strip()
         guest_email = request.form.get("email", "").strip()
+        category = request.form.get("category", "").strip()
+        color = request.form.get("color", "").strip()
+        brand = request.form.get("brand", "").strip()
+        date_lost = request.form.get("date_lost", "").strip()
 
         if not name or not description or not secret_detail or not guest_email:
             flash("Please fill in all required fields.", "danger")
@@ -435,6 +606,17 @@ def post_found_item():
                 file.save(os.path.join(app.config["UPLOAD_FOLDER"], filename))
                 image_filename = filename
 
+        # Parse date_lost if provided
+        date_lost_obj = None
+        if date_lost:
+            try:
+                date_lost_obj = datetime.strptime(date_lost, "%Y-%m-%d").date()
+            except:
+                date_lost_obj = None
+
+        # Generate unique QR code identifier
+        qr_code = str(uuid.uuid4())[:8].upper()
+
         new_item = Item(
             name=name,
             description=description,
@@ -445,7 +627,12 @@ def post_found_item():
             image_filename=image_filename,
             secret_detail=secret_detail,
             guest_email=guest_email,
-            owner_id=None
+            owner_id=None,
+            category=category,
+            color=color,
+            brand=brand,
+            date_lost=date_lost_obj,
+            qr_code=qr_code
         )
         db.session.add(new_item)
         db.session.commit()
@@ -456,7 +643,13 @@ def post_found_item():
         "South Forsyth", "North Forsyth", "West Forsyth", "East Forsyth",
         "Forsyth Central", "Lambert", "Denmark", "Alliance"
     ]
-    return render_template("post_found_item.html", schools=schools)
+    
+    categories = [
+        "Electronics", "Clothes", "Jewelry", "Books", "Sports Equipment",
+        "Accessories", "Documents", "Keys", "Other"
+    ]
+    
+    return render_template("post_found_item.html", schools=schools, categories=categories)
 
 
 # ============================================================================
@@ -1269,6 +1462,194 @@ def admin_send_to_user(user_id):
         db.session.commit()
     
     return redirect(url_for("admin_chat_with", user_id=user_id))
+
+# ============================================================================
+#  ENHANCED CLAIM VERIFICATION & QR CODE PICKUP
+# ============================================================================
+
+def generate_qr_code(qr_data):
+    """Generate a QR code for pickup verification (returns image data)."""
+    import io
+    try:
+        import qrcode
+        qr = qrcode.QRCode(
+            version=1,
+            error_correction=qrcode.constants.ERROR_CORRECT_L,
+            box_size=10,
+            border=4,
+        )
+        qr.add_data(qr_data)
+        qr.make(fit=True)
+        img = qr.make_image(fill_color="black", back_color="white")
+        
+        # Convert to bytes
+        img_io = io.BytesIO()
+        img.save(img_io, 'PNG')
+        img_io.seek(0)
+        return img_io.getvalue()
+    except:
+        return None
+
+@app.route("/api/claim/<int:claim_id>/qr")
+def get_claim_qr(claim_id):
+    """Get QR code for pickup verification."""
+    claim = ClaimRequest.query.get(claim_id)
+    if not claim or claim.status != "approved":
+        return jsonify({"error": "Invalid claim or not approved"}), 404
+    
+    qr_data = f"PICKUP:{claim_id}:{claim.item_id}:{datetime.utcnow().isoformat()}"
+    qr_image = generate_qr_code(qr_data)
+    
+    if qr_image:
+        return send_file(io.BytesIO(qr_image), mimetype="image/png")
+    return jsonify({"error": "Could not generate QR code"}), 500
+
+@app.route("/admin/claims/verify_pickup", methods=["POST"])
+@admin_required
+def admin_verify_qr_pickup():
+    """Admin verifies QR code at pickup."""
+    data = request.get_json() or {}
+    claim_id = data.get("claim_id")
+    
+    claim = ClaimRequest.query.get(claim_id)
+    if claim and claim.status == "approved":
+        claim.pickup_qr_verified = True
+        item = Item.query.get(claim.item_id)
+        if item:
+            item.status = "Claimed"
+        db.session.commit()
+        return jsonify({"success": True, "message": "Pickup verified!"})
+    
+    return jsonify({"error": "Invalid claim"}), 400
+
+@app.route("/admin/claims/staff_approve/<int:claim_id>", methods=["POST"])
+@admin_required
+def staff_approve_claim(claim_id):
+    """Staff approve a claim (with verification of secret detail)."""
+    claim = ClaimRequest.query.get(claim_id)
+    if not claim:
+        return jsonify({"error": "Claim not found"}), 404
+    
+    item = Item.query.get(claim.item_id)
+    if not item:
+        return jsonify({"error": "Item not found"}), 404
+    
+    # Verify secret detail if it exists
+    if item.secret_detail:
+        if claim.secret_detail_answer and claim.secret_detail_answer.lower() == item.secret_detail.lower():
+            claim.staff_approved = True
+            claim.approved_by = current_user.id
+            claim.approved_at = datetime.utcnow()
+            claim.status = "approved"
+            db.session.commit()
+            
+            return jsonify({"success": True, "message": "Claim approved!"})
+        else:
+            return jsonify({"error": "Secret detail answer is incorrect"}), 400
+    
+    # No secret detail, just approve
+    claim.staff_approved = True
+    claim.approved_by = current_user.id
+    claim.approved_at = datetime.utcnow()
+    claim.status = "approved"
+    db.session.commit()
+    
+    return jsonify({"success": True, "message": "Claim approved!"})
+
+# ============================================================================
+# 📊 LOST ITEM TRENDS DASHBOARD
+# ============================================================================
+
+@app.route("/admin/trends")
+@admin_required
+def trends_dashboard():
+    """Show analytics and trends of lost/found items."""
+    school = current_user.school if current_user.school != "All Schools" else None
+    
+    if school:
+        all_items = Item.query.filter_by(school=school).all()
+    else:
+        all_items = Item.query.all()
+    
+    # Most commonly lost items
+    from collections import Counter
+    item_names = Counter(item.name for item in all_items)
+    top_items = item_names.most_common(10)
+    
+    # Category stats
+    category_counts = Counter(item.category for item in all_items if item.category)
+    
+    # By day of week
+    from datetime import timedelta
+    date_counts = Counter()
+    for item in all_items:
+        if item.date_lost:
+            date_counts[item.date_lost.strftime("%A")] += 1
+    
+    # Peak times (months)
+    month_counts = Counter()
+    for item in all_items:
+        if item.date_lost:
+            month_counts[item.date_lost.strftime("%B")] += 1
+    
+    # Grade level stats (if available - using name patterns)
+    grade_stats = {
+        "High": len([i for i in all_items if i.owner and any(g in i.owner.name for g in ["9th", "10th", "11th", "12th", "Junior", "Senior"])]),
+        "Lower": len([i for i in all_items if i.owner])
+    }
+    
+    # Claim success rate
+    claimed_items = len([i for i in all_items if i.status == "Claimed"])
+    total_items = len(all_items)
+    claim_rate = (claimed_items / total_items * 100) if total_items > 0 else 0
+    
+    return render_template("trends_dashboard.html",
+        top_items=top_items,
+        category_counts=dict(category_counts.most_common(10)),
+        peak_days=dict(date_counts.most_common(7)),
+        peak_months=dict(month_counts.most_common(12)),
+        grade_stats=grade_stats,
+        claim_success_rate=round(claim_rate, 1),
+        total_items=total_items,
+        claimed_items=claimed_items,
+        school=school or "All Schools"
+    )
+
+@app.route("/api/trends/chart-data")
+@admin_required
+def trends_chart_data():
+    """Get chart data for trends dashboard."""
+    school = current_user.school if current_user.school != "All Schools" else None
+    
+    if school:
+        items = Item.query.filter_by(school=school).all()
+    else:
+        items = Item.query.all()
+    
+    from collections import defaultdict
+    
+    # Items per day (last 30 days)
+    daily_counts = defaultdict(int)
+    for item in items:
+        if item.date_found:
+            daily_counts[item.date_found.isoformat()] += 1
+    
+    # By category
+    category_counts = defaultdict(int)
+    for item in items:
+        if item.category:
+            category_counts[item.category] += 1
+    
+    # By status
+    status_counts = defaultdict(int)
+    for item in items:
+        status_counts[item.status] += 1
+    
+    return jsonify({
+        "daily_found": dict(sorted(daily_counts.items())),
+        "category_distribution": dict(category_counts),
+        "status_distribution": dict(status_counts)
+    })
 
 # ============================================================================
 # APP INITIALIZATION & ENTRYPOINT\n# ============================================================================

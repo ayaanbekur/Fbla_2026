@@ -1,0 +1,207 @@
+{% extends "base.html" %}
+
+{% block title %}Trends Dashboard{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-5">
+    <h1>📊 Lost & Found Analytics Dashboard</h1>
+    <p class="text-muted">School: {{ school }}</p>
+
+    <div class="row mb-4">
+        <!-- Key Statistics -->
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h5 class="card-title">Total Items</h5>
+                    <h2 class="text-primary">{{ total_items }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h5 class="card-title">Items Claimed</h5>
+                    <h2 class="text-success">{{ claimed_items }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h5 class="card-title">Claim Success Rate</h5>
+                    <h2 class="text-info">{{ claim_success_rate }}%</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h5 class="card-title">Pending Claims</h5>
+                    <h2 class="text-warning">{{ total_items - claimed_items }}</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Top Lost Items -->
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">🔝 Most Commonly Lost Items</h5>
+                </div>
+                <div class="card-body">
+                    {% if top_items %}
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Item Name</th>
+                                <th>Count</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for name, count in top_items %}
+                            <tr>
+                                <td>{{ name }}</td>
+                                <td><span class="badge bg-primary">{{ count }}</span></td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    {% else %}
+                    <p class="text-muted">No data available</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Categories Distribution -->
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">📦 Items by Category</h5>
+                </div>
+                <div class="card-body">
+                    {% if category_counts %}
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Category</th>
+                                <th>Count</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for category, count in category_counts.items() %}
+                            <tr>
+                                <td>{{ category }}</td>
+                                <td><span class="badge bg-info">{{ count }}</span></td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    {% else %}
+                    <p class="text-muted">No category data available</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Peak Days -->
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">📅 Peak Days (Items Lost)</h5>
+                </div>
+                <div class="card-body">
+                    {% if peak_days %}
+                    <div class="list-group">
+                        {% for day, count in peak_days.items() %}
+                        <div class="list-group-item d-flex justify-content-between">
+                            <span>{{ day }}</span>
+                            <span class="badge bg-success">{{ count }}</span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <p class="text-muted">No data available</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Peak Months -->
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">🗓️ Peak Months</h5>
+                </div>
+                <div class="card-body">
+                    {% if peak_months %}
+                    <div class="list-group">
+                        {% for month, count in peak_months.items() %}
+                        <div class="list-group-item d-flex justify-content-between">
+                            <span>{{ month }}</span>
+                            <span class="badge bg-warning">{{ count }}</span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <p class="text-muted">No data available</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Grade Level Stats -->
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">👥 Items by Grade Level</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-md-6">
+                            <h6>High School</h6>
+                            <h3 class="text-primary">{{ grade_stats.High }}</h3>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Lower Level</h6>
+                            <h3 class="text-info">{{ grade_stats.Lower }}</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chart Container (for future JS charts) -->
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">📈 Trends Over Time</h5>
+                </div>
+                <div class="card-body">
+                    <div id="trendChart" style="height: 300px;">
+                        <p class="text-muted text-center">Chart will load here...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Load chart data
+    fetch('{{ url_for("trends_chart_data") }}')
+        .then(r => r.json())
+        .then(data => {
+            console.log('Trends data:', data);
+            // TODO: Implement with Chart.js or similar
+        });
+</script>
+{% endblock %}

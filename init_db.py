@@ -1,7 +1,8 @@
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
-from datetime import datetime
+from datetime import datetime, timedelta
+import uuid
 
 # Initialize SQLAlchemy here, not in app.py
 db = SQLAlchemy()
@@ -49,6 +50,22 @@ class Item(db.Model):
     guest_email = db.Column(db.String(120), nullable=True)  # Email for guest posters
     claimant = db.Column(db.String(100))
     secret_detail = db.Column(db.Text, nullable=True)  # The detail owner hides (e.g., engraving, lock screen photo)
+    
+    # Smart Search & Filters
+    category = db.Column(db.String(50), nullable=True)  # electronics, clothes, jewelry, books, etc.
+    color = db.Column(db.String(50), nullable=True)  # For filtering by color
+    brand = db.Column(db.String(100), nullable=True)  # Brand name
+    date_lost = db.Column(db.Date, nullable=True)  # When item was lost (for date slider)
+    date_found = db.Column(db.Date, default=datetime.utcnow)  # When item was found
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Auto-Archive & Donation
+    claim_deadline = db.Column(db.DateTime, default=lambda: datetime.utcnow() + timedelta(days=30))
+    is_archived = db.Column(db.Boolean, default=False)
+    archive_date = db.Column(db.DateTime, nullable=True)
+    
+    # QR Code for pickup
+    qr_code = db.Column(db.String(100), unique=True, nullable=True)  # Unique QR code identifier
 
 
 # --------------------------
@@ -102,3 +119,11 @@ class ClaimRequest(db.Model):
     identifiable_features = db.Column(db.Text, nullable=True)  # Features that prove ownership
     secret_detail_answer = db.Column(db.Text, nullable=True)  # Their answer to the secret detail
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+    staff_approved = db.Column(db.Boolean, default=False)  # Staff verification
+    approved_by = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)  # Which admin approved it
+    approved_at = db.Column(db.DateTime, nullable=True)  # When it was approved
+    pickup_qr_verified = db.Column(db.Boolean, default=False)  # QR code scanned at pickup
+
+
+
+

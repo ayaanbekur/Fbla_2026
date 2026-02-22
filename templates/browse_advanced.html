@@ -1,0 +1,160 @@
+{% extends "base.html" %}
+
+{% block title %}Browse Lost & Found Items{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <h1>🔎 Browse Items</h1>
+    
+    <!-- Smart Search & Filters -->
+    <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">Search & Filter</h5>
+        </div>
+        <div class="card-body">
+            <form method="GET" action="{{ url_for('browse') }}" class="row g-3">
+                <!-- Keyword Search -->
+                <div class="col-md-12">
+                    <label for="search" class="form-label">Keyword Search</label>
+                    <input type="text" class="form-control" id="search" name="q" 
+                           placeholder="Search by item name, description, or location..." 
+                           value="{{ search_query or '' }}">
+                </div>
+
+                <!-- Category Filter -->
+                <div class="col-md-3">
+                    <label for="category" class="form-label">Category</label>
+                    <select class="form-select" id="category" name="category">
+                        <option value="">All Categories</option>
+                        {% for cat in categories %}
+                        <option value="{{ cat }}" {% if cat == selected_category %}selected{% endif %}>{{ cat }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Color Filter -->
+                <div class="col-md-3">
+                    <label for="color" class="form-label">Color</label>
+                    <select class="form-select" id="color" name="color">
+                        <option value="">All Colors</option>
+                        {% for col in colors %}
+                        <option value="{{ col }}" {% if col == selected_color %}selected{% endif %}>{{ col }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Brand Filter -->
+                <div class="col-md-3">
+                    <label for="brand" class="form-label">Brand</label>
+                    <select class="form-select" id="brand" name="brand">
+                        <option value="">All Brands</option>
+                        {% for b in brands %}
+                        <option value="{{ b }}" {% if b == selected_brand %}selected{% endif %}>{{ b }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- School Filter -->
+                <div class="col-md-3">
+                    <label for="school" class="form-label">School</label>
+                    <select class="form-select" id="school" name="school">
+                        <option value="South Forsyth">South Forsyth</option>
+                        <option value="North Forsyth">North Forsyth</option>
+                        <option value="West Forsyth">West Forsyth</option>
+                        <option value="East Forsyth">East Forsyth</option>
+                        <option value="Forsyth Central">Forsyth Central</option>
+                        <option value="Lambert">Lambert</option>
+                        <option value="Denmark">Denmark</option>
+                        <option value="Alliance">Alliance</option>
+                    </select>
+                </div>
+
+                <!-- Date Range Slider -->
+                <div class="col-md-6">
+                    <label for="date_from" class="form-label">Date Lost (From)</label>
+                    <input type="date" class="form-control" id="date_from" name="date_from" 
+                           value="{{ date_from or '' }}">
+                </div>
+
+                <div class="col-md-6">
+                    <label for="date_to" class="form-label">Date Lost (To)</label>
+                    <input type="date" class="form-control" id="date_to" name="date_to" 
+                           value="{{ date_to or '' }}">
+                </div>
+
+                <!-- Search Button -->
+                <div class="col-md-12">
+                    <button type="submit" class="btn btn-primary">🔍 Search</button>
+                    <a href="{{ url_for('browse') }}" class="btn btn-secondary">Clear Filters</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Results Section -->
+    <div class="row">
+        {% if items %}
+            <p class="text-muted">Found {{ items|length }} item(s)</p>
+            {% for item in items %}
+            <div class="col-md-6 col-lg-4 mb-4">
+                <div class="card h-100">
+                    {% if item.image_filename %}
+                    <img src="{{ url_for('static', filename='uploads/' ~ item.image_filename) }}" 
+                         class="card-img-top" alt="{{ item.name }}">
+                    {% else %}
+                    <div class="card-img-top bg-light d-flex align-items-center justify-content-center" style="height: 200px;">
+                        <span class="text-muted">No Image</span>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="card-body">
+                        <h5 class="card-title">{{ item.name }}</h5>
+                        
+                        {% if item.category %}
+                        <p class="small"><strong>Category:</strong> {{ item.category }}</p>
+                        {% endif %}
+                        
+                        {% if item.color %}
+                        <p class="small"><strong>Color:</strong> {{ item.color }}</p>
+                        {% endif %}
+                        
+                        {% if item.location %}
+                        <p class="small"><strong>Location Found:</strong> {{ item.location }}</p>
+                        {% endif %}
+                        
+                        {% if item.date_lost %}
+                        <p class="small"><strong>Date Lost:</strong> {{ item.date_lost.strftime('%m/%d/%Y') }}</p>
+                        {% endif %}
+                        
+                        <!-- Archive Countdown -->
+                        {% if item.claim_deadline %}
+                        <div class="alert alert-warning small mb-2">
+                            ⏳ <strong>Claim before {{ item.claim_deadline.strftime('%b %d') }}</strong> or item will be donated
+                        </div>
+                        {% endif %}
+                        
+                        <p class="card-text text-truncate">{{ item.description }}</p>
+                    </div>
+                    
+                    <div class="card-footer">
+                        <a href="{{ url_for('item', item_id=item.id) }}" class="btn btn-sm btn-primary">View Details</a>
+                        <a href="{{ url_for('send_item_message', item_id=item.id) }}" class="btn btn-sm btn-info">💬 Message</a>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="alert alert-info">
+                No items found matching your filters. <a href="{{ url_for('browse') }}">Clear filters</a> or <a href="{{ url_for('post_found_item') }}">post a found item</a>.
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="mt-5">
+        <a href="{{ url_for('post_found_item') }}" class="btn btn-success btn-lg">
+            📸 Post a Found Item
+        </a>
+    </div>
+</div>
+{% endblock %}
