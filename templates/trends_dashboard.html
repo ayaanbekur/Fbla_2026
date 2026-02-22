@@ -4,8 +4,21 @@
 
 {% block content %}
 <div class="container-fluid mt-5">
-    <h1>📊 Lost & Found Analytics Dashboard</h1>
-    <p class="text-muted">School: {{ school }}</p>
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>📊 Lost & Found Analytics Dashboard</h1>
+        <!-- School Filter Dropdown -->
+        <form method="GET" class="d-flex gap-2">
+            <select name="school" class="form-select" style="max-width: 250px;" onchange="this.form.submit()">
+                <option value="">All Schools</option>
+                {% for school_option in all_schools %}
+                <option value="{{ school_option }}" {% if school_option == selected_school %}selected{% endif %}>
+                    {{ school_option }}
+                </option>
+                {% endfor %}
+            </select>
+        </form>
+    </div>
+    <p class="text-muted">Viewing: <strong>{{ school }}</strong></p>
 
     <div class="row mb-4">
         <!-- Key Statistics -->

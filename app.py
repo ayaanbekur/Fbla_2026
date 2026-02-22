@@ -21,6 +21,10 @@ import torch
 from PIL import Image
 import numpy as np
 from transformers import CLIPProcessor, CLIPModel
+try:
+    import qrcode
+except ImportError:
+    qrcode = None
 
 # Local modules / database models
 from init_db import db, User, Item, Message, AIChat, Report, ClaimRequest
@@ -1469,9 +1473,10 @@ def admin_send_to_user(user_id):
 
 def generate_qr_code(qr_data):
     """Generate a QR code for pickup verification (returns image data)."""
-    import io
+    if not qrcode:
+        return None
+    
     try:
-        import qrcode
         qr = qrcode.QRCode(
             version=1,
             error_correction=qrcode.constants.ERROR_CORRECT_L,
@@ -1564,12 +1569,28 @@ def staff_approve_claim(claim_id):
 @admin_required
 def trends_dashboard():
     """Show analytics and trends of lost/found items."""
-    school = current_user.school if current_user.school != "All Schools" else None
+    # Get school filter from query parameter
+    selected_school = request.args.get('school', '')
+    current_admin_school = current_user.school if current_user.school != "All Schools" else None
     
-    if school:
-        all_items = Item.query.filter_by(school=school).all()
+    # If admin is assigned to a specific school, use that; otherwise allow selection
+    if current_admin_school:
+        school_to_filter = current_admin_school
+    elif selected_school:
+        school_to_filter = selected_school
+    else:
+        school_to_filter = None
+    
+    if school_to_filter:
+        all_items = Item.query.filter_by(school=school_to_filter).all()
     else:
         all_items = Item.query.all()
+    
+    # Get all schools for dropdown
+    all_schools = [
+        "South Forsyth", "North Forsyth", "West Forsyth", "East Forsyth",
+        "Forsyth Central", "Lambert", "Denmark", "Alliance"
+    ]
     
     # Most commonly lost items
     from collections import Counter
@@ -1612,14 +1633,26 @@ def trends_dashboard():
         claim_success_rate=round(claim_rate, 1),
         total_items=total_items,
         claimed_items=claimed_items,
-        school=school or "All Schools"
+        school=school_to_filter or "All Schools",
+        all_schools=all_schools,
+        selected_school=selected_school
     )
 
 @app.route("/api/trends/chart-data")
 @admin_required
 def trends_chart_data():
     """Get chart data for trends dashboard."""
-    school = current_user.school if current_user.school != "All Schools" else None
+    # Get school filter from query parameter
+    selected_school = request.args.get('school', '')
+    current_admin_school = current_user.school if current_user.school != "All Schools" else None
+    
+    # If admin is assigned to a specific school, use that; otherwise allow selection
+    if current_admin_school:
+        school = current_admin_school
+    elif selected_school:
+        school = selected_school
+    else:
+        school = None
     
     if school:
         items = Item.query.filter_by(school=school).all()
