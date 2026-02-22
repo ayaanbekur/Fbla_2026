@@ -5,6 +5,7 @@ from datetime import datetime
 import json
 import uuid
 import io
+from typing import TYPE_CHECKING
 
 # Third-party libraries
 import requests
@@ -21,6 +22,10 @@ import torch
 from PIL import Image
 import numpy as np
 from transformers import CLIPProcessor, CLIPModel
+
+if TYPE_CHECKING:
+    import qrcode
+
 try:
     import qrcode
 except ImportError:
