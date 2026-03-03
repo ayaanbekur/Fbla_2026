@@ -802,12 +802,28 @@ def ai_chat_page():
     """Display AI chat interface."""
     return render_template("ai_chat.html")
 
+@app.route("/api/ai_chat_history")
+@login_required
+def get_ai_chat_history():
+    """Get previous AI chat messages for the user."""
+    history = AIChat.query.filter_by(user_id=current_user.id).order_by(AIChat.timestamp).all()
+    return jsonify([
+        {
+            "id": msg.id,
+            "sender": msg.sender,
+            "message": msg.message,
+            "timestamp": msg.timestamp.isoformat()
+        }
+        for msg in history
+    ])
+
 @app.route("/ai_chat", methods=["POST"])
 @login_required
 def ai_chat():
     """Handle AI conversation and lost item creation via AI."""
     data = request.get_json() or {}
     user_msg = data.get("message", "").strip()
+    target_school = data.get("school", session.get('school', 'South Forsyth'))
 
     if not user_msg:
         return jsonify({"error": "empty message"}), 400
@@ -815,6 +831,7 @@ def ai_chat():
     if not AI_ENDPOINT:
         return jsonify({"error": "AI_ENDPOINT not configured"}), 500
 
+    # Get available items
     items = Item.query.filter_by(approved=True).all()
 
     if items:
@@ -827,6 +844,9 @@ def ai_chat():
     else:
         items_list = "There are currently no approved items available."
 
+    # List of Forsyth County high schools
+    schools = ["South Forsyth", "North Forsyth", "West Forsyth", "East Forsyth", "Forsyth Central", "Lambert", "Denmark", "Alliance"]
+
     system_prompt = f"""
 You are Roman, a friendly AI assistant for a Lost & Found service.
 
@@ -834,28 +854,56 @@ You are Roman, a friendly AI assistant for a Lost & Found service.
 
 You may use **bold**, *italics*, emojis, bullet points, spacing, and headers.
 
-If the user says they lost something, enter LOST_ITEM_MODE.
+AVAILABLE SCHOOLS: {', '.join(schools)}
+CURRENT SCHOOL CONTEXT: {target_school}
 
-In LOST_ITEM_MODE:
-- Ask for item name, description, and last seen location
+If the user wants to post a found item:
+- Ask for: item name, description, location found, and which school to post it to
+- Offer the available schools as options: {', '.join(schools)}
+- When they're ready, respond ONLY with JSON:
+
+{{
+  "action": "create_found_item",
+  "name": "",
+  "description": "",
+  "location": "",
+  "school": ""
+}}
+
+If the user says they lost something:
+- Ask for: item name, description, last seen location, and which school to report it to
 - When ready, respond ONLY with JSON:
 
 {{
   "action": "create_lost_item",
   "name": "",
   "description": "",
-  "location": ""
+  "location": "",
+  "school": ""
 }}
 
-No extra text outside JSON.
+No extra text outside JSON when confirming actions.
 """
+
+    # Build messages with conversation history
+    conversation_history = AIChat.query.filter_by(user_id=current_user.id).order_by(AIChat.timestamp.desc()).limit(20).all()
+    conversation_history.reverse()
+    
+    messages = [{"role": "system", "content": system_prompt}]
+    
+    # Add previous conversation context (last 10 exchanges max)
+    for chat in conversation_history[-10:]:
+        messages.append({
+            "role": "user" if chat.sender == "user" else "assistant",
+            "content": chat.message
+        })
+    
+    # Add current user message
+    messages.append({"role": "user", "content": user_msg})
 
     payload = {
         "model": AI_MODEL,
-        "messages": [
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_msg}
-        ]
+        "messages": messages
     }
 
     headers = {"Content-Type": "application/json"}
@@ -896,13 +944,48 @@ No extra text outside JSON.
                 school=user_school,
                 status="Lost",
                 approved=False,
-                owner_id=current_user.id
+                owner_id=current_user.id,
+                school=action_data.get("school", target_school)
             )
             db.session.add(new_item)
             db.session.commit()
 
             confirmation = (
                 "📦 **Your lost item has been reported!**\n\n"
+                "An admin will review it shortly."
+            )
+
+            db.session.add(AIChat(
+                user_id=current_user.id,
+                sender="user",
+                message=user_msg
+            ))
+            db.session.add(AIChat(
+                user_id=current_user.id,
+                sender="ai",
+                message=confirmation
+            ))
+            db.session.commit()
+
+            return jsonify({"reply": confirmation})
+
+        elif action_data.get("action") == "create_found_item":
+            # Create a Found item at the specified school
+            new_item = Item(
+                name=action_data["name"],
+                description=action_data["description"],
+                location=action_data["location"],
+                school=action_data.get("school", target_school),
+                status="Found",
+                approved=False,
+                owner_id=current_user.id
+            )
+            db.session.add(new_item)
+            db.session.commit()
+
+            confirmation = (
+                "✅ **Your found item has been posted!**\n\n"
+                f"School: **{action_data.get('school', target_school)}**\n"
                 "An admin will review it shortly."
             )
 

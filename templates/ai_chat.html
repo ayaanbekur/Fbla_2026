@@ -167,6 +167,42 @@
   </style>
 
   <script>
+    // Load previous chat history on page load
+    async function loadChatHistory() {
+      try {
+        const resp = await fetch('{{ url_for("get_ai_chat_history") }}');
+        if (resp.ok) {
+          const messages = await resp.json();
+          const messagesBox = document.getElementById('messages');
+          
+          // Clear the default greeting if this is a returning user with history
+          if (messages.length > 0) {
+            messagesBox.innerHTML = '';
+          }
+          
+          // Add all previous messages
+          messages.forEach(msg => {
+            const div = document.createElement('div');
+            if (msg.sender === 'user') {
+              div.className = 'message user-message';
+              div.innerHTML = `<strong>You:</strong> ${escapeHtml(msg.message)}`;
+            } else {
+              div.className = 'message ai-message';
+              div.innerHTML = `<strong>Roman:</strong> ${marked.parse(msg.message)}`;
+            }
+            messagesBox.appendChild(div);
+          });
+          
+          messagesBox.scrollTop = messagesBox.scrollHeight;
+        }
+      } catch (err) {
+        console.error('Failed to load chat history:', err);
+      }
+    }
+
+    // Load history when page loads
+    document.addEventListener('DOMContentLoaded', loadChatHistory);
+
     document.getElementById('chat-form').addEventListener('submit', async (e) => {
       e.preventDefault();
       const input = document.getElementById('message-input');
@@ -190,10 +226,14 @@
       messagesBox.scrollTop = messagesBox.scrollHeight;
 
       try {
+        // Get the current school from the page or use default
+        const schoolInput = document.querySelector('[data-school]');
+        const school = schoolInput ? schoolInput.dataset.school : 'South Forsyth';
+        
         const resp = await fetch('{{ url_for("ai_chat") }}', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ message: msg })
+          body: JSON.stringify({ message: msg, school: school })
         });
 
         loadingDiv.remove();
