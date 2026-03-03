@@ -934,18 +934,14 @@ No extra text outside JSON when confirming actions.
         action_data = json.loads(reply)
 
         if action_data.get("action") == "create_lost_item":
-            # Get user's school from session
-            user_school = session.get('school', 'South Forsyth')
-
             new_item = Item(
                 name=action_data["name"],
                 description=action_data["description"],
                 location=action_data["location"],
-                school=user_school,
+                school=action_data.get("school", target_school),
                 status="Lost",
                 approved=False,
-                owner_id=current_user.id,
-                school=action_data.get("school", target_school)
+                owner_id=current_user.id
             )
             db.session.add(new_item)
             db.session.commit()
