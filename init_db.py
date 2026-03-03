@@ -65,12 +65,6 @@ class Item(db.Model):
     
     # QR Code for pickup
     qr_code = db.Column(db.String(100), unique=True, nullable=True)  # Unique QR code identifier
-    
-    # Relationship to claim requests
-    claim_requests = db.relationship("ClaimRequest", backref="item", lazy=True, cascade="all, delete-orphan")
-    
-    # Relationship to reports
-    reports = db.relationship("Report", backref="item", lazy=True, cascade="all, delete-orphan")
 
 
 # --------------------------
