@@ -1392,6 +1392,8 @@ def admin_delete(item_id):
     """Permanently delete an item."""
     item = Item.query.get(item_id)
     if item:
+        # Delete all related claim requests first to avoid foreign key constraint violation
+        ClaimRequest.query.filter_by(item_id=item_id).delete()
         db.session.delete(item)
         db.session.commit()
         session['admin_action_msg'] = 'Item deleted'
@@ -1413,6 +1415,8 @@ def reject(item_id):
     """Reject and remove a pending item."""
     item = Item.query.get(item_id)
     if item:
+        # Delete all related claim requests first to avoid foreign key constraint violation
+        ClaimRequest.query.filter_by(item_id=item_id).delete()
         db.session.delete(item)
         db.session.commit()
         session['admin_action_msg'] = 'Item rejected and removed'
@@ -1448,6 +1452,8 @@ def admin_delete_browse(item_id):
     """Delete an item from the browse view."""
     item = Item.query.get(item_id)
     if item:
+        # Delete all related claim requests first to avoid foreign key constraint violation
+        ClaimRequest.query.filter_by(item_id=item_id).delete()
         db.session.delete(item)
         db.session.commit()
         session['admin_action_msg'] = 'Item deleted'
